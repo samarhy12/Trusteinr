@@ -1,0 +1,275 @@
+{% extends "base.html" %} {% block title %}Dashboard — Trustline Finance{%
+endblock %} {% block page_title %}Dashboard{% endblock %} {% block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  {{ current_year }} overview of customers, loans and cash position
+</div>
+{% endblock %} {% block content %}
+<div
+  class="card card-pad w-full mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+>
+  <div>
+    <div class="text-[10px] uppercase tracking-[0.2em] text-ink-400">
+      Current date &amp; time
+    </div>
+    <div id="live-date" class="text-base font-semibold text-ink-700 mt-1"></div>
+  </div>
+  <div id="live-time" class="font-mono text-2xl font-bold text-navy-900"></div>
+</div>
+
+<script>
+  function updateLiveClock() {
+    const now = new Date();
+    const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
+    const dateEl = document.getElementById("live-date");
+    const timeEl = document.getElementById("live-time");
+
+    if (dateEl) dateEl.textContent = dateFormatter.format(now);
+    if (timeEl) timeEl.textContent = timeFormatter.format(now);
+  }
+
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
+</script>
+
+{% if current_user.is_admin %}
+<div
+  class="card card-pad w-full mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+>
+  <div class="flex items-center gap-2">
+    <span class="text-ink-400 text-sm">Business day:</span>
+    {% if is_weekend_today %}<span class="badge badge-gray"
+      >Weekend — closed</span
+    >
+    {% elif business_day_open %}<span class="badge badge-green">Open</span> {%
+    else %}<span class="badge badge-red">Closed</span>{% endif %}
+  </div>
+  <a href="{{ url_for('business.overview') }}" class="btn btn-outline btn-sm"
+    >Manage business day</a
+  >
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">Cash in hand</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(cash_in_hand) }}</div>
+    <div class="stat-foot">Collected &minus; disbursed + capital</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active loans</div>
+    <div class="stat-value">{{ active_loans_count }}</div>
+    <div class="stat-foot">
+      GHS {{ "{:,.2f}".format(outstanding_total) }} outstanding
+    </div>
+  </div>
+  <div class="stat-card {{ 'warn' if overdue_loans }}">
+    <div class="stat-label">Overdue loans</div>
+    <div class="stat-value">{{ overdue_loans|length }}</div>
+    <div class="stat-foot">Past maturity date, balance remaining</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total customers</div>
+    <div class="stat-value">{{ total_customers }}</div>
+    <div class="stat-foot">Registered on the platform</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+  <div class="card w-full min-w-0">
+    <div class="card-header">
+      <h3>Recent transactions</h3>
+      <a
+        href="{{ url_for('staff.transactions') }}"
+        class="btn btn-outline btn-sm"
+        >See more</a
+      >
+    </div>
+    {% if recent_transactions %}
+    <div class="tx-list">
+      {% for tx in recent_transactions %}
+      <div class="tx-row">
+        <div class="tx-icon {{ 'in' if tx.amount > 0 else 'out' }}">
+          {% if tx.tx_type == 'capital_in' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 3v12M7 10l5 5 5-5" />
+            <path d="M4 19h16" />
+          </svg>
+          {% elif tx.tx_type == 'disbursement' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M7 17L17 7M8 7h9v9" />
+          </svg>
+          {% elif tx.tx_type == 'repayment' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          {% elif tx.tx_type == 'expense' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+            <path d="M9 8h6M9 12h6" />
+          </svg>
+          {% else %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M4 12h16M4 6h16M4 18h16" />
+          </svg>
+          {% endif %}
+        </div>
+        <div class="tx-body">
+          <div class="tx-title">
+            {{ tx.description or tx.tx_type.replace('_',' ')|capitalize }}
+          </div>
+          <div class="tx-sub">
+            {{ tx.date.strftime("%d %b %Y") }} &middot; {{
+            tx.tx_type.replace('_',' ')|capitalize }}
+          </div>
+        </div>
+        <div class="tx-amount {{ 'in' if tx.amount > 0 else 'out' }}">
+          {{ '+' if tx.amount > 0 else '' }}{{ "{:,.2f}".format(tx.amount) }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <h4>No transactions yet</h4>
+      <p>Disburse a loan or record a repayment to see activity here.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card card-pad w-full min-w-0">
+    <h3 class="mb-4">Quick actions</h3>
+    <div class="flex flex-col gap-2.5">
+      {% if current_user.can_register_customers %}
+      <a
+        href="{{ url_for('customers.new_customer') }}"
+        class="btn btn-primary btn-block"
+        >+ Register customer</a
+      >
+      {% endif %} {% if current_user.can_disburse_loans %}
+      <a href="{{ url_for('loans.new_loan') }}" class="btn btn-gold btn-block"
+        >+ Disburse new loan</a
+      >
+      {% endif %} {% if current_user.can_record_expenses %}
+      <a
+        href="{{ url_for('expenses.new_expense') }}"
+        class="btn btn-outline btn-block"
+        >+ Record expense</a
+      >
+      {% endif %}
+      <a
+        href="{{ url_for('loans.list_loans', status='overdue') }}"
+        class="btn btn-outline btn-block"
+        >View overdue loans</a
+      >
+    </div>
+
+    <h3 class="mt-6 mb-3">This week</h3>
+    <div class="flex flex-col gap-3">
+      <div class="flex justify-between items-center">
+        <span class="text-ink-400 text-sm">Disbursed</span>
+        <span class="ledger-figure"
+          >GHS {{ "{:,.2f}".format(disbursed_this_week) }}</span
+        >
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-ink-400 text-sm">Collected</span>
+        <span class="ledger-figure"
+          >GHS {{ "{:,.2f}".format(collected_this_week) }}</span
+        >
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-ink-400 text-sm">Expenses</span>
+        <span class="ledger-figure"
+          >GHS {{ "{:,.2f}".format(expenses_this_week) }}</span
+        >
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-5 w-full">
+  <div class="card-header">
+    <h3>Recent repayments</h3>
+    <a
+      href="{{ url_for('loans.list_repayments') }}"
+      class="btn btn-outline btn-sm"
+      >See more</a
+    >
+  </div>
+  {% if recent_repayments %}
+  <div class="tx-list">
+    {% for r in recent_repayments %}
+    <div class="tx-row">
+      <div class="tx-icon in">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+      </div>
+      <div class="tx-body">
+        <a
+          class="tx-title row-link block"
+          href="{{ url_for('customers.view_customer', customer_id=r.loan.customer_id) }}"
+          >{{ r.loan.customer.full_name }}</a
+        >
+        <div class="tx-sub">
+          <a
+            class="row-link"
+            href="{{ url_for('loans.view_loan', loan_id=r.loan_id) }}"
+            >{{ r.loan.loan_code }}</a
+          >
+          &middot; {{ r.date.strftime("%d %b %Y") }} &middot; {{
+          r.transaction_id }}
+        </div>
+      </div>
+      <div class="tx-amount in">GHS {{ "{:,.2f}".format(r.amount) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><h4>No repayments recorded yet</h4></div>
+  {% endif %}
+</div>
+
+{% endblock %}

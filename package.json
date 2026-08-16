@@ -1,0 +1,16 @@
+{
+  "name": "trustline-finance",
+  "version": "1.0.0",
+  "description": "A multi-staff loan management system for Trustline Finance: customer records, loan disbursement with automatic interest and schedule calculation, daily/weekly/monthly repayment tracking, and a live cash-in-hand ledger. Built as a Progressive Web App (installable on phones and desktops) with Flask + SQLAlchemy on the backend.",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Record Payment for {{ agent.full_name }} — Trustline Finance{% endblock %}
+{% block page_title %}Record Payment{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Record money collected by {{ agent.full_name }}</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('agents.list_agents') }}">Agents</a><span class="sep">/</span>
+  <a href="{{ url_for('agents.agent_detail', agent_id=agent.id) }}">{{ agent.full_name }}</a><span class="sep">/</span>
+  <span class="current">Record Payment</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="card card-pad w-full max-w-2xl">
+  <form method="POST" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+    <div class="field mb-4">
+      <label for="loan_id">Select Loan</label>
+      <select id="loan_id" name="loan_id" required>
+        <option value="" disabled {{ 'selected' if not form.get('loan_id') }}>Select an active loan</option>
+        {% for loan in active_loans %}
+        <option value="{{ loan.id }}" {{ 'selected' if form.get('loan_id')|int == loan.id }}>
+          {{ loan.loan_code }} - {{ loan.customer.full_name }} (Balance: GHS {{ "{:,.2f}".format(loan.outstanding_balance) }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="field mb-4">
+      <label for="amount">Amount (GHS)</label>
+      <input type="number" id="amount" name="amount" min="0.01" step="0.01" required
+             value="{{ form.get('amount','') }}" placeholder="Enter amount collected">
+    </div>
+    
+    <div class="field mb-4">
+      <label for="date">Payment Date</label>
+      <input type="date" id="date" name="date" required value="{{ form.get('date') or today }}">
+    </div>
+    
+    <div class="field mb-5">
+      <label for="note">Note (optional)</label>
+      <input type="text" id="note" name="note" 
+             value="{{ form.get('note','') }}" placeholder="Any additional details">
+    </div>
+    
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button type="submit" class="btn btn-gold">Record Payment</button>
+      <a href="{{ url_for('agents.agent_detail', agent_id=agent.id) }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<div class="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+  <strong class="text-amber-800">Information:</strong>
+  <ul class="mt-2 space-y-1 text-amber-700">
+    <li>• This will record the payment as collected by agent <strong>{{ agent.full_name }}</strong></li>
+    <li>• The payment will be added to the agent's collection record</li>
+    <li>• The loan balance will be updated automatically</li>
+    <li>• A cash transaction will be recorded in the ledger</li>
+  </ul>
+</div>
+{% endblock %}

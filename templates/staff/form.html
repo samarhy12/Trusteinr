@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Add staff account — Trustline Finance{% endblock %}
+{% block page_title %}Add a staff account{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Admins can create staff logins and control access</div>{% endblock %}
+
+{% block content %}
+<div class="card card-pad w-full max-w-md">
+  <form method="POST" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field mb-4">
+      <label for="full_name">Full name</label>
+      <input type="text" id="full_name" name="full_name" required value="{{ form.get('full_name','') }}">
+    </div>
+    <div class="field mb-4">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required value="{{ form.get('username','') }}">
+    </div>
+    <div class="field mb-4">
+      <label for="password">Temporary password</label>
+      <input type="password" id="password" name="password" minlength="{{ min_len }}" required>
+      <span class="hint">At least {{ min_len }} characters. They'll be asked to set their own password on first login.</span>
+    </div>
+    <div class="field mb-5">
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        <option value="agent" {{ 'selected' if form.get('role','agent') == 'agent' }}>Agent</option>
+        <option value="office_staff" {{ 'selected' if form.get('role') == 'office_staff' }}>Office Staff</option>
+        <option value="admin" {{ 'selected' if form.get('role') == 'admin' }}>Admin</option>
+      </select>
+      <span class="hint">Agent: registers customers, views everything, records nothing. Office Staff: registers customers and records repayments. Admin: full access.</span>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button type="submit" class="btn btn-gold">Create account</button>
+      <a href="{{ url_for('staff.list_staff') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

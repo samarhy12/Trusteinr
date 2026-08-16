@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit customer' if editing else 'Register customer' }} — Trustline Finance{% endblock %}
+{% block page_title %}{{ 'Edit customer' if editing else 'Register a customer' }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Basic 1–JHS 3 loan client details</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('customers.list_customers') }}">Customers</a><span class="sep">/</span>
+  {% if editing %}
+  <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}">{{ customer.full_name }}</a><span class="sep">/</span>
+  <span class="current">Edit</span>
+  {% else %}
+  <span class="current">Register customer</span>
+  {% endif %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="card card-pad w-full max-w-3xl">
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+
+      <div class="form-section-title">Photo</div>
+      <div class="field sm:col-span-2"
+           x-data="{ preview: {% if editing and customer.photo_filename %}'{{ url_for('static', filename='uploads/customers/' + customer.photo_filename) }}'{% else %}null{% endif %} }">
+        <label class="block mb-1.5">Passport picture <span class="hint">(PNG or JPG, optional)</span></label>
+        <div class="flex items-center gap-5">
+          <label for="photo"
+                 class="group relative w-24 h-24 rounded-full flex-shrink-0 overflow-hidden border-2 border-dashed border-line
+                        bg-cream-100 flex items-center justify-center cursor-pointer transition-colors hover:border-gold-500"
+                 :class="preview ? '!border-solid !border-line' : ''">
+            <template x-if="preview">
+              <img :src="preview" class="w-full h-full object-cover" alt="Passport preview">
+            </template>
+            <template x-if="!preview">
+              <span class="flex flex-col items-center gap-1 text-ink-400 group-hover:text-gold-500 transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="w-7 h-7">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </span>
+            </template>
+            <div x-show="preview" x-cloak
+                 class="absolute inset-0 bg-navy-900/0 group-hover:bg-navy-900/40 transition-colors flex items-center justify-center">
+              <span class="text-white text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Change</span>
+            </div>
+          </label>
+
+          <div class="flex-1">
+            <label for="photo" class="btn btn-outline btn-sm cursor-pointer inline-flex"
+                   x-text="preview ? 'Change photo' : 'Choose photo'"></label>
+            <input type="file" id="photo" name="photo" accept="image/png,image/jpeg" class="hidden"
+                   @change="const f = $event.target.files[0]; if (f) preview = URL.createObjectURL(f);">
+            <p class="hint mt-1.5" x-show="!preview">No photo selected yet — JPG or PNG, up to 5MB.</p>
+            <p class="hint mt-1.5" x-show="preview" x-cloak>Looks good — this will be saved when you submit the form.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Personal details</div>
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" required
+               value="{{ (customer.full_name if editing else form.get('full_name')) or '' }}">
+      </div>
+      <div class="field">
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender" required>
+          <option value="" disabled {{ 'selected' if not (customer.gender if editing else form.get('gender')) }}>Select gender</option>
+          {% for g in genders %}
+          <option value="{{ g }}" {{ 'selected' if (customer.gender if editing else form.get('gender')) == g }}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="date_of_birth">Date of birth</label>
+        <input type="date" id="date_of_birth" name="date_of_birth" required max="{{ max_dob }}"
+               value="{{ customer.date_of_birth.strftime('%Y-%m-%d') if editing and customer.date_of_birth else form.get('date_of_birth', '') }}">
+        <span class="hint">Customer must be at least 18 years old.</span>
+      </div>
+      <div class="field">
+        <label for="phone_number">Phone number</label>
+        <input type="tel" id="phone_number" name="phone_number" placeholder="024xxxxxxx" required
+               value="{{ (customer.phone_number if editing else form.get('phone_number')) or '' }}">
+      </div>
+
+      <div class="form-section-title">Identification</div>
+      <div class="field">
+        <label for="id_type">ID type</label>
+        <select id="id_type" name="id_type" required>
+          <option value="" disabled {{ 'selected' if not (customer.id_type if editing else form.get('id_type')) }}>Select ID type</option>
+          {% for t in id_types %}
+          <option value="{{ t }}" {{ 'selected' if (customer.id_type if editing else form.get('id_type')) == t }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="id_number">ID number</label>
+        <input type="text" id="id_number" name="id_number" required
+               value="{{ (customer.id_number if editing else form.get('id_number')) or '' }}">
+      </div>
+
+      <div class="form-section-title">Address &amp; livelihood</div>
+      <div class="field sm:col-span-2">
+        <label for="residential_address">Residential address</label>
+        <textarea id="residential_address" name="residential_address" required>{{ (customer.residential_address if editing else form.get('residential_address')) or '' }}</textarea>
+      </div>
+      <div class="field">
+        <label for="occupation">Occupation</label>
+        <input type="text" id="occupation" name="occupation" required
+               value="{{ (customer.occupation if editing else form.get('occupation')) or '' }}">
+      </div>
+      <div class="field">
+        <label for="employment_status">Employment status</label>
+        <select id="employment_status" name="employment_status" required>
+          <option value="" disabled {{ 'selected' if not (customer.employment_status if editing else form.get('employment_status')) }}>Select status</option>
+          {% for s in employment_statuses %}
+          <option value="{{ s }}" {{ 'selected' if (customer.employment_status if editing else form.get('employment_status')) == s }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field sm:col-span-2">
+        <label for="business_type">Type of business <span class="hint">(if self-employed / trading)</span></label>
+        <input type="text" id="business_type" name="business_type"
+               value="{{ (customer.business_type if editing else form.get('business_type')) or '' }}">
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-3 mt-6">
+      <button type="submit" class="btn btn-gold">{{ 'Save changes' if editing else 'Register customer' }}</button>
+      <a href="{{ url_for('customers.view_customer', customer_id=customer.id) if editing else url_for('customers.list_customers') }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

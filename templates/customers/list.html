@@ -1,0 +1,203 @@
+{% extends "base.html" %} {% block title %}Customers — Trustline Finance{%
+endblock %} {% block page_title %}Customers{% endblock %} {% block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  <span id="customer-count">{{ pagination.total }}</span> registered customer{{ 's' if pagination.total != 1 }}
+</div>
+{% endblock %} {% block content %}
+<div
+  class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"
+>
+  <div class="search-box relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+    <input
+      type="text"
+      id="search-input"
+      value="{{ q }}"
+      placeholder="Search name, phone, ID or customer code"
+      autocomplete="off"
+    />
+    <button 
+      id="clear-search" 
+      class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 hidden"
+      title="Clear search"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <button onclick="window.print()" class="btn btn-outline btn-sm">
+      Print
+    </button>
+    <a
+      href="{{ url_for('customers.new_customer') }}"
+      class="btn btn-gold sm:flex-shrink-0"
+      >+ Register customer</a
+    >
+  </div>
+</div>
+
+<div class="card w-full">
+  {% if customers %}
+  <div class="overflow-x-auto">
+    <table class="data-table" id="customers-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Customer</th>
+          <th>Code</th>
+          <th>Phone</th>
+          <th>Occupation</th>
+          <th>Active loans</th>
+          <th>Registered</th>
+        </tr>
+      </thead>
+      <tbody id="customers-tbody">
+        {% for c in customers %}
+        <tr data-search="{{ c.full_name }} {{ c.phone_number }} {{ c.customer_code }} {{ c.id_number }}">
+          <td class="num text-ink-400">{{ c.registration_number }}</td>
+          <td>
+            <a
+              class="row-link"
+              href="{{ url_for('customers.view_customer', customer_id=c.id) }}"
+              >{{ c.full_name }}</a
+            >
+            <div class="text-ink-400 text-[11.5px]">
+              {{ c.gender }} &middot; {{ c.age }} yrs
+            </div>
+          </td>
+          <td>{{ c.customer_code }}</td>
+          <td>{{ c.phone_number }}</td>
+          <td>{{ c.occupation }}</td>
+          <td>{{ c.active_loans|length }}</td>
+          <td>{{ c.created_at.strftime("%d %b %Y") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div id="no-results" class="hidden empty-state">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+    >
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2" />
+    </svg>
+    <h4>No customers found</h4>
+    <p>Try adjusting your search terms.</p>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+    >
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2" />
+    </svg>
+    <h4>No customers found</h4>
+    <p>
+      {% if q %}No results for "{{ q }}". Try a different search.{% else
+      %}Register your first customer to get started.{% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% if pagination.pages > 1 %}
+<div class="mt-5 flex flex-wrap items-center justify-center gap-2" id="pagination">
+  {% if pagination.has_prev %}
+  <a
+    href="{{ url_for('customers.list_customers', page=pagination.prev_num, **query_params) }}"
+    class="btn btn-outline btn-sm"
+    >← Prev</a
+  >
+  {% endif %} {% for page_num in range(1, pagination.pages + 1) %}
+  <a
+    href="{{ url_for('customers.list_customers', page=page_num, **query_params) }}"
+    class="btn btn-sm {{ 'btn-primary' if page_num == pagination.page else 'btn-outline' }}"
+    >{{ page_num }}</a
+  >
+  {% endfor %} {% if pagination.has_next %}
+  <a
+    href="{{ url_for('customers.list_customers', page=pagination.next_num, **query_params) }}"
+    class="btn btn-outline btn-sm"
+    >Next →</a
+  >
+  {% endif %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('search-input');
+  const clearButton = document.getElementById('clear-search');
+  const customersTable = document.getElementById('customers-table');
+  const customersTbody = document.getElementById('customers-tbody');
+  const noResults = document.getElementById('no-results');
+  const customerCount = document.getElementById('customer-count');
+  const pagination = document.getElementById('pagination');
+  
+  let allRows = Array.from(customersTbody.querySelectorAll('tr'));
+  
+  // Live search functionality
+  searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    
+    // Show/hide clear button
+    clearButton.classList.toggle('hidden', query === '');
+    
+    if (query === '') {
+      // Show all rows
+      allRows.forEach(row => row.style.display = '');
+      noResults.classList.add('hidden');
+      customersTable.classList.remove('hidden');
+      customerCount.textContent = allRows.length;
+      if (pagination) pagination.classList.remove('hidden');
+      return;
+    }
+    
+    // Filter rows
+    let visibleCount = 0;
+    allRows.forEach(row => {
+      const searchData = row.getAttribute('data-search').toLowerCase();
+      const matches = searchData.includes(query);
+      row.style.display = matches ? '' : 'none';
+      if (matches) visibleCount++;
+    });
+    
+    // Show/hide table and no results message
+    if (visibleCount === 0) {
+      customersTable.classList.add('hidden');
+      noResults.classList.remove('hidden');
+      if (pagination) pagination.classList.add('hidden');
+    } else {
+      customersTable.classList.remove('hidden');
+      noResults.classList.add('hidden');
+      if (pagination) pagination.classList.remove('hidden');
+    }
+    
+    customerCount.textContent = visibleCount;
+  });
+  
+  // Clear search functionality
+  clearButton.addEventListener('click', function() {
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+    searchInput.focus();
+  });
+  
+  // Initialize clear button visibility
+  clearButton.classList.toggle('hidden', searchInput.value === '');
+});
+</script>
+{% endblock %}

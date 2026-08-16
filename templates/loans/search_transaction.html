@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Find a transaction — Trustline Finance{% endblock %}
+{% block page_title %}Find a transaction{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Look up any payment by its transaction ID</div>{% endblock %}
+
+{% block content %}
+<div class="card card-pad w-full max-w-xl mx-auto">
+  <form method="GET" class="flex flex-col sm:flex-row gap-3 mb-2">
+    <input type="text" name="q" value="{{ query }}" placeholder="e.g. 2026070724" autofocus
+           class="flex-1" style="font-family: var(--font-mono, monospace);">
+    <button type="submit" class="btn btn-gold sm:flex-shrink-0">Search</button>
+  </form>
+  <p class="hint mb-2">A transaction ID is the payment date followed by the customer's registration number — you'll find it on every receipt.</p>
+
+  {% if searched %}
+    {% if repayment %}
+    <div class="mt-5 pt-5 border-t border-line">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="text-ink-400 text-[11px] uppercase tracking-wide">Found</div>
+          <div class="font-mono font-semibold text-navy-800 text-lg">{{ repayment.transaction_id }}</div>
+        </div>
+        <span class="badge badge-green">Match found</span>
+      </div>
+      <dl class="grid grid-cols-2 gap-y-3 text-sm mb-5">
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Date</dt><dd class="m-0">{{ repayment.date.strftime("%d %b %Y") }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Amount</dt><dd class="m-0 font-semibold">GHS {{ "{:,.2f}".format(repayment.amount) }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Customer</dt><dd class="m-0">{{ repayment.loan.customer.full_name }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Loan</dt><dd class="m-0">{{ repayment.loan.loan_code }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Collected by</dt><dd class="m-0">{{ repayment.agent.full_name if repayment.agent else "—" }}</dd></div>
+      </dl>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a href="{{ url_for('loans.repayment_receipt', loan_id=repayment.loan_id, repayment_id=repayment.id) }}" class="btn btn-gold">View / print receipt</a>
+        <a href="{{ url_for('loans.view_loan', loan_id=repayment.loan_id) }}" class="btn btn-outline">View loan</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <h4>No transaction found for "{{ query }}"</h4>
+      <p>Double-check the transaction ID and try again.</p>
+    </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

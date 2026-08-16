@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ notification.title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #121316;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            color: #121316;
+            margin: 0;
+            font-size: 24px;
+        }
+        .header .date {
+            color: #666;
+            margin-top: 5px;
+        }
+        .message {
+            white-space: pre-wrap;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .section {
+            margin-bottom: 25px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .section-header {
+            background: #f5f5f5;
+            padding: 12px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+        .section-content {
+            padding: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f9f9f9;
+            font-weight: bold;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .summary {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+        }
+        .overdue {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Trustline Finance</h1>
+        <p>Loan Payment Collection Report</p>
+        <p class="date">{{ notification.created_at.strftime('%d %B %Y at %I:%M %p') }}</p>
+    </div>
+
+    <div class="message">{{ notification.message }}</div>
+
+    {% if notification.loan_data and notification.notification_type == 'due_loans' %}
+    {% set due_loans = notification.loan_data.get('due_today', []) %}
+    {% set overdue_loans = notification.loan_data.get('overdue', []) %}
+    {% set summary = notification.loan_data.get('summary', {}) %}
+
+    {% if due_loans %}
+    <div class="section">
+        <div class="section-header">Due Today ({{ due_loans|length }})</div>
+        <div class="section-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Loan Code</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in due_loans %}
+                    <tr>
+                        <td>{{ loan.customer_name }}</td>
+                        <td>{{ loan.customer_phone }}</td>
+                        <td>{{ loan.loan_code }}</td>
+                        <td class="text-right">GHS {{ "{:,.2f}".format(loan.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if overdue_loans %}
+    <div class="section">
+        <div class="section-header">Overdue ({{ overdue_loans|length }})</div>
+        <div class="section-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Loan Code</th>
+                        <th>Days Overdue</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in overdue_loans %}
+                    <tr>
+                        <td>{{ loan.customer_name }}</td>
+                        <td>{{ loan.customer_phone }}</td>
+                        <td>{{ loan.loan_code }}</td>
+                        <td class="overdue">{{ loan.days_overdue }} day{{ 's' if loan.days_overdue != 1 }}</td>
+                        <td class="text-right">GHS {{ "{:,.2f}".format(loan.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if summary %}
+    <div class="summary">
+        <h3>Summary</h3>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span>Due Today:</span>
+                <span>{{ summary.due_count }} loans</span>
+            </div>
+            <div class="summary-item">
+                <span>Overdue:</span>
+                <span>{{ summary.overdue_count }} loans</span>
+            </div>
+            <div class="summary-item">
+                <span>Total Due:</span>
+                <span>GHS {{ "{:,.2f}".format(summary.total_due_amount) }}</span>
+            </div>
+            <div class="summary-item">
+                <span>Total Overdue:</span>
+                <span class="overdue">GHS {{ "{:,.2f}".format(summary.total_overdue_amount) }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="no-print" style="margin-top: 30px; text-align: center;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #121316; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Print Report
+        </button>
+    </div>
+</body>
+</html>

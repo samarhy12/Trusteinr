@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  [x-cloak] { display: none !important; }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-cream-100 text-ink-900 font-body antialiased;
+    font-size: 15px;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display text-navy-800 font-bold tracking-tight;
+  }
+  a {
+    @apply text-inherit no-underline;
+  }
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-navy-600;
+  }
+}
+
+@layer components {
+  /* ---------------- Ledger figure (signature passbook motif) ---------------- */
+  .ledger-figure {
+    @apply font-mono tabular-nums border-b border-gold-500/70 pb-0.5 inline-block;
+  }
+
+  /* ---------------------------- Buttons ---------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded text-sm font-semibold
+           border border-transparent transition-colors whitespace-nowrap;
+  }
+  .btn-primary { @apply bg-navy-800 text-white hover:bg-navy-700; }
+  .btn-gold { @apply bg-gold-500 text-white hover:bg-gold-400; }
+  .btn-outline { @apply bg-transparent border-line text-ink-900 hover:border-navy-600; }
+  .btn-danger-outline { @apply bg-transparent border-red-600 text-red-600 hover:bg-red-50; }
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-block { @apply w-full; }
+  .btn[disabled] { @apply opacity-50 cursor-not-allowed; }
+
+  /* ---------------------------- Cards ---------------------------- */
+  .card { @apply bg-white border border-line rounded shadow-card; }
+  .card-pad { @apply p-6; }
+  .card-header { @apply flex items-center justify-between px-6 py-4 border-b border-line; }
+  .card-header h3 { @apply text-base; }
+
+  .stat-card { @apply relative bg-white border border-line rounded p-5; }
+  .stat-card::before { content: ""; @apply absolute left-0 right-0 top-0 h-[3px] bg-gold-500/60; }
+  .stat-card.warn::before { @apply bg-red-700/70; }
+  .stat-card.warn .stat-value { @apply text-red-700; }
+  .stat-label { @apply text-xs uppercase tracking-wide text-ink-400 mb-2; }
+  .stat-value { @apply font-mono text-2xl font-semibold text-navy-800; }
+  .stat-foot { @apply text-xs text-ink-400 mt-1.5; }
+
+  /* ---------------------------- Badges ---------------------------- */
+  .badge { @apply inline-flex items-center gap-1.5 px-2 py-[3px] rounded-[3px] text-[11px] font-semibold uppercase tracking-wide border; }
+  .badge-green { @apply bg-green-50 text-green-800 border-green-200; }
+  .badge-red { @apply bg-red-50 text-red-800 border-red-200; }
+  .badge-amber { @apply bg-amber-50 text-amber-800 border-amber-200; }
+  .badge-navy { @apply bg-navy-800 text-gold-400 border-navy-800; }
+  .badge-gray { @apply bg-cream-200 text-ink-600 border-line; }
+
+  /* ---------------------------- Forms ---------------------------- */
+  .field { @apply flex flex-col gap-1.5 mb-1; }
+  .field label { @apply text-xs font-semibold text-ink-600; }
+  .field .hint { @apply text-[11px] text-ink-400; }
+
+  .input {
+    @apply font-body text-sm px-3 py-2.5 border border-line rounded bg-cream-100 text-ink-900 w-full
+           transition-colors focus:outline-none focus:border-navy-600 focus:bg-white;
+  }
+  input[type=text], input[type=password], input[type=number], input[type=date],
+  input[type=tel], select, textarea {
+    @apply input;
+  }
+  textarea { @apply resize-y min-h-[80px]; }
+
+  .form-section-title {
+    @apply text-xs uppercase tracking-wider text-navy-600 font-bold mt-6 pb-2 border-b border-line;
+    grid-column: 1 / -1;
+  }
+  .form-section-title:first-child { @apply mt-0; }
+
+  .radio-card { @apply border border-line rounded p-3.5 cursor-pointer transition-colors relative; }
+  .radio-card input { @apply absolute opacity-0; }
+  .radio-card:has(input:checked) { @apply border-navy-700 bg-cream-100; }
+  .rc-title { @apply font-semibold text-sm text-navy-800; }
+  .rc-sub { @apply text-xs text-ink-400 mt-0.5; }
+
+  /* ---------------------------- Transaction rows ---------------------------- */
+  .tx-list { @apply divide-y divide-cream-200; }
+  .tx-row { @apply flex items-center gap-3.5 px-6 py-3.5; }
+  .tx-icon { @apply w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0; }
+  .tx-icon svg { @apply w-[18px] h-[18px]; }
+  .tx-icon.in { @apply bg-green-50 text-green-700; }
+  .tx-icon.out { @apply bg-red-50 text-red-700; }
+  .tx-body { @apply flex-1 min-w-0; }
+  .tx-title { @apply text-sm font-semibold text-ink-900 truncate; }
+  .tx-sub { @apply text-xs text-ink-400 mt-0.5 truncate; }
+  .tx-amount { @apply font-mono text-sm font-semibold flex-shrink-0 text-right whitespace-nowrap; }
+  .tx-amount.in { @apply text-green-700; }
+  .tx-amount.out { @apply text-red-700; }
+
+  /* ---------------------------- Tables ---------------------------- */
+  .data-table { @apply w-full border-collapse text-sm; }
+  .data-table th {
+    @apply text-left px-4 py-3 text-[11px] uppercase tracking-wide text-ink-400 border-b border-line whitespace-nowrap;
+  }
+  .data-table td { @apply px-4 py-3.5 border-b border-cream-200 align-middle; }
+  .data-table tbody tr { @apply transition-colors; }
+  .data-table tbody tr:hover { @apply bg-cream-100; }
+  .data-table .num { @apply font-mono; }
+  .row-link { @apply text-navy-800 font-semibold hover:text-gold-500; }
+
+  /* ---------------------------- Progress ---------------------------- */
+  .progress-track { @apply h-2 bg-cream-200 rounded-full overflow-hidden; }
+  .progress-fill { @apply h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-400; }
+
+  /* ---------------------------- Nav links ---------------------------- */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
+           text-white/80 hover:bg-white/10 hover:text-white transition-colors mb-0.5;
+  }
+  .nav-link svg { @apply w-[18px] h-[18px] flex-shrink-0 opacity-90; }
+  .nav-link.active { @apply bg-gold-500/15 text-gold-400 font-semibold; }
+  .nav-link.active svg { @apply opacity-100; }
+
+  /* ---------------------------- Flash messages ---------------------------- */
+  .flash {
+    @apply px-4 py-3 rounded-lg text-sm shadow-pop border-l-4 bg-white;
+    animation: slideIn 0.25s ease;
+  }
+  .flash.success { @apply border-green-600 text-green-700; }
+  .flash.error { @apply border-red-600 text-red-700; }
+  .flash.info { @apply border-navy-600 text-navy-700; }
+  @keyframes slideIn {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* ---------------------------- Empty state ---------------------------- */
+  .empty-state { @apply text-center py-16 px-5 text-ink-400; }
+  .empty-state svg { @apply w-11 h-11 mx-auto mb-3.5 opacity-50; }
+  .empty-state h4 { @apply text-ink-600 mb-1.5; }
+
+  /* ---------------------------- Search box ---------------------------- */
+  .search-box { @apply flex items-center gap-2.5 bg-white border border-line rounded px-3.5 py-2 max-w-sm w-full; }
+  .search-box input { @apply border-0 bg-transparent p-0.5 w-full focus:bg-transparent; }
+  .search-box svg { @apply w-4 h-4 text-ink-400 flex-shrink-0; }
+
+  /* ---------------------------- Breadcrumbs ---------------------------- */
+  .breadcrumb { @apply flex items-center flex-wrap gap-1.5 text-[13px] text-ink-400 mb-4; }
+  .breadcrumb a { @apply text-ink-400 hover:text-gold-500 transition-colors; }
+  .breadcrumb .sep { @apply text-line; }
+  .breadcrumb .current { @apply text-navy-800 font-medium; }
+}
+
+@page {
+  margin: 14mm 10mm;
+}
+@page landscape {
+  size: landscape;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .app-shell-grid { display: block !important; }
+  main { padding: 0 !important; }
+  body { background: #fff !important; font-size: 11px; }
+
+  .print-landscape { page: landscape; }
+
+  .card { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; }
+  .stat-card { break-inside: avoid; }
+
+  /* Wide report tables must fit the printed page width — no horizontal scrollbars on paper */
+  .overflow-x-auto { overflow: visible !important; }
+  .data-table { width: 100% !important; table-layout: auto; font-size: 9.5px; }
+  .data-table th, .data-table td { padding: 3px 5px !important; white-space: normal !important; word-break: break-word; }
+  .data-table th { white-space: normal !important; }
+  .data-table .num { white-space: nowrap; }
+  .badge { border-width: 1px !important; }
+}

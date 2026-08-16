@@ -1,0 +1,91 @@
+{% extends "base.html" %} {% block title %}Sign in — Trustline Finance{%
+endblock %} {% block auth_content %}
+<div class="min-h-screen grid lg:grid-cols-2">
+  <div
+    class="bg-navy-900 text-white px-6 sm:px-10 lg:px-16 py-10 lg:py-16 flex flex-col justify-center min-h-[420px] lg:min-h-screen gap-10 border-b lg:border-b-0 lg:border-r border-line"
+  >
+    <div class="flex flex-col gap-3.5">
+      <div class="flex items-center gap-3.5">
+        <img
+          src="{{ url_for('static', filename='icons/logo-transparent.png') }}"
+          alt="Trustline Finance"
+          class="w-11 h-11 object-contain flex-shrink-0"
+        />
+        <div>
+          <div
+            class="font-display text-lg font-bold text-white leading-tight"
+          >
+            Trustline
+          </div>
+          <div class="text-[11px] tracking-wide text-gold-400 uppercase">
+            Finance
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2.5 text-[11px] tracking-widest text-gold-400 uppercase font-semibold">
+        <span>Fast</span><span class="text-white/25">&middot;</span>
+        <span>Reliable</span><span class="text-white/25">&middot;</span>
+        <span>Trusted</span>
+      </div>
+    </div>
+
+    <p
+      class="font-display text-xl sm:text-2xl leading-snug max-w-md text-white/90"
+    >
+      Every cedi accounted for.<br />Every customer on record.
+    </p>
+
+    <div class="text-xs text-white/40 border-t border-white/10 pt-5 max-w-md">
+      Staff back-office &middot; Koforidua
+    </div>
+  </div>
+
+  <div
+    class="flex items-center justify-center bg-cream-100 px-6 py-12 sm:py-16"
+  >
+    <div class="w-full max-w-sm">
+      <h2 class="text-2xl mb-1.5">Welcome back</h2>
+      <p class="text-ink-400 text-sm mb-7">
+        Sign in with your staff credentials to continue.
+      </p>
+
+      <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="field mb-4">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            value="{{ username or '' }}"
+            autocomplete="username"
+            autofocus
+            required
+          />
+        </div>
+        <div class="field mb-4">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+        <label
+          class="flex items-center gap-2 mb-5 text-sm text-ink-600 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            name="remember"
+            class="w-4 h-4 accent-gold-500"
+          />
+          Keep me signed in on this device
+        </label>
+        <button type="submit" class="btn btn-gold btn-block">Sign in</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

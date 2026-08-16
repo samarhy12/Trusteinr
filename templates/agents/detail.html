@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.full_name }} — Trustline Finance{% endblock %}
+{% block page_title %}{{ agent.full_name }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Agent collection record</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('agents.list_agents') }}">Agents</a><span class="sep">/</span>
+  <span class="current">{{ agent.full_name }}</span>
+</nav>
+{% endblock %}
+
+{% block main_class %}print-landscape{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 no-print">
+  <form method="GET" class="flex items-center gap-2 flex-wrap">
+    <input type="hidden" name="view" value="day">
+    <input type="date" name="date" value="{{ (selected_date or today).isoformat() }}" max="{{ today.isoformat() }}"
+           onchange="this.form.submit()">
+    <a href="{{ url_for('agents.agent_detail', agent_id=agent.id, view='day', date=today.isoformat()) }}" class="btn btn-outline btn-sm">Today</a>
+    <a href="{{ url_for('agents.agent_detail', agent_id=agent.id, view='all') }}"
+       class="btn btn-sm {{ 'btn-primary' if view == 'all' else 'btn-outline' }}">All time</a>
+  </form>
+  <div class="flex gap-2">
+    {% if current_user.can_record_repayments %}
+    <a href="{{ url_for('agents.record_agent_payment', agent_id=agent.id) }}" class="btn btn-gold btn-sm">+ Record Payment</a>
+    {% endif %}
+    <button onclick="window.print()" class="btn btn-primary btn-sm">Print / Save as PDF</button>
+  </div>
+</div>
+
+<div class="card card-pad w-full mb-5">
+  <div class="flex items-center gap-4">
+    <div class="w-14 h-14 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center font-display font-semibold text-xl flex-shrink-0">{{ agent.full_name[:1] }}</div>
+    <div>
+      <div class="font-semibold text-navy-800 text-lg">{{ agent.full_name }}</div>
+      <div class="text-ink-400 text-sm">
+        {% if view == 'all' %}All-time collection record{% else %}Collections for {{ selected_date.strftime("%d %b %Y") }}{% endif %}
+      </div>
+    </div>
+    <div class="ml-auto text-right">
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Total</div>
+      <div class="ledger-figure text-xl">GHS {{ "{:,.2f}".format(total) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card w-full">
+  {% if repayments %}
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr><th>Transaction ID</th><th>Date</th><th>Customer</th><th>Account no.</th><th>Contact</th><th>Loan</th><th>Amount</th><th>Note</th></tr>
+      </thead>
+      <tbody>
+        {% for r in repayments %}
+        <tr>
+          <td><a class="row-link" href="{{ url_for('loans.repayment_receipt', loan_id=r.loan_id, repayment_id=r.id) }}">{{ r.transaction_id }}</a></td>
+          <td>{{ r.date.strftime("%d %b %Y") }}</td>
+          <td><a class="row-link" href="{{ url_for('customers.view_customer', customer_id=r.loan.customer_id) }}">{{ r.loan.customer.full_name }}</a></td>
+          <td>{{ r.loan.customer.customer_code }}</td>
+          <td>{{ r.loan.customer.phone_number }}</td>
+          <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=r.loan_id) }}">{{ r.loan.loan_code }}</a></td>
+          <td class="num font-semibold">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+          <td class="text-ink-400">{{ r.note or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h4>No collections {% if view == 'all' %}on record{% else %}for this day{% endif %}</h4>
+    <p>Repayments recorded against this agent will appear here.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %} {% block title %}Staff accounts — Trustline Finance{%
+endblock %} {% block page_title %}Staff accounts{% endblock %} {% block page_sub
+%}
+<div class="text-xs text-ink-400 mt-0.5">
+  Manage who can access the Trustline Finance system
+</div>
+{% endblock %} {% block content %}
+<div class="flex justify-end mb-4">
+  <a href="{{ url_for('staff.new_staff') }}" class="btn btn-gold"
+    >+ Add staff account</a
+  >
+</div>
+
+<div class="card w-full">
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Edit customers?</th>
+          <th>Last sign-in</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>{{ m.full_name }}</td>
+          <td>{{ m.username }}</td>
+          <td>
+            {% if m.role == 'admin' %}<span class="badge badge-navy"
+              >Admin</span
+            >
+            {% elif m.role == 'office_staff' %}<span class="badge badge-amber"
+              >Office Staff</span
+            >
+            {% else %}<span class="badge badge-gray">Agent</span>{% endif %}
+          </td>
+          <td>
+            <div class="flex flex-col gap-1 items-start">
+              {% if m.is_active_staff %}<span class="badge badge-green"
+                >Active</span
+              >{% else %}<span class="badge badge-red">Disabled</span>{% endif
+              %} {% if m.is_locked %}<span class="badge badge-red"
+                >Locked out</span
+              >{% endif %} {% if m.must_change_password %}<span
+                class="badge badge-amber"
+                >Password reset pending</span
+              >{% endif %}
+            </div>
+          </td>
+          <td>
+            {% if m.role == 'agent' %}
+            <form
+              method="POST"
+              action="{{ url_for('staff.toggle_agent_edit_permission', staff_id=m.id) }}"
+            >
+              <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+              />
+              <button
+                type="submit"
+                class="btn btn-sm {{ 'btn-primary' if m.agent_edit_permission else 'btn-outline' }}"
+              >
+                {{ 'Allowed' if m.agent_edit_permission else 'Not allowed' }}
+              </button>
+            </form>
+            {% else %}
+            <span class="text-ink-400 text-xs">—</span>
+            {% endif %}
+          </td>
+          <td class="text-ink-400 text-sm">
+            {{ m.last_login_at.strftime("%d %b %Y, %I:%M %p") if m.last_login_at
+            else "Never" }}
+          </td>
+          <td>
+            <div class="flex gap-2 flex-wrap justify-end">
+              <form
+                method="POST"
+                action="{{ url_for('staff.reset_password', staff_id=m.id) }}"
+                onsubmit="return confirm('Reset {{ m.full_name }}\'s password? A new temporary password will be generated and shown once.');"
+              >
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                />
+                <button type="submit" class="btn btn-outline btn-sm">
+                  Reset password
+                </button>
+              </form>
+              {% if m.id != current_user.id %}
+              <form
+                method="POST"
+                action="{{ url_for('staff.toggle_staff', staff_id=m.id) }}"
+                onsubmit="return confirm('{{ 'Deactivate' if m.is_active_staff else 'Activate' }} {{ m.full_name }}\'s account?');"
+              >
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                />
+                <button
+                  type="submit"
+                  class="btn btn-sm {{ 'btn-danger-outline' if m.is_active_staff else 'btn-outline' }}"
+                >
+                  {{ 'Deactivate' if m.is_active_staff else 'Activate' }}
+                </button>
+              </form>
+              {% else %}<span class="text-ink-400 text-xs self-center">You</span
+              >{% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if pagination.pages > 1 %}
+<div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+  {% if pagination.has_prev %}
+  <a
+    href="{{ url_for('staff.list_staff', page=pagination.prev_num) }}"
+    class="btn btn-outline btn-sm"
+    >← Prev</a
+  >
+  {% endif %} {% for page_num in range(1, pagination.pages + 1) %}
+  <a
+    href="{{ url_for('staff.list_staff', page=page_num) }}"
+    class="btn btn-sm {{ 'btn-primary' if page_num == pagination.page else 'btn-outline' }}"
+    >{{ page_num }}</a
+  >
+  {% endfor %} {% if pagination.has_next %}
+  <a
+    href="{{ url_for('staff.list_staff', page=pagination.next_num) }}"
+    class="btn btn-outline btn-sm"
+    >Next →</a
+  >
+  {% endif %}
+</div>
+{% endif %} {% endblock %}

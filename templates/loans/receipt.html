@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Transaction {{ repayment.transaction_id }} — Trustline Finance{% endblock %}
+{% block page_title %}Transaction {{ repayment.transaction_id }}{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('loans.list_loans') }}">Loans</a><span class="sep">/</span>
+  <a href="{{ url_for('loans.view_loan', loan_id=loan.id) }}">{{ loan.loan_code }}</a><span class="sep">/</span>
+  <span class="current">Receipt</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4 no-print">
+  <a href="{{ url_for('loans.view_loan', loan_id=loan.id) }}" class="btn btn-outline btn-sm">&larr; Back to loan</a>
+  <button onclick="window.print()" class="btn btn-primary btn-sm">Print receipt</button>
+</div>
+
+<div class="card card-pad w-full max-w-md mx-auto" style="font-family: var(--font-mono, monospace);">
+  <div class="text-center mb-5 pb-5 border-b-2 border-dashed border-line">
+    <img src="{{ url_for('static', filename='icons/logo-mark.png') }}" alt="Trustline Finance" class="w-12 h-12 object-contain mx-auto mb-2">
+    <div class="font-display font-bold text-navy-800 text-base" style="font-family: var(--font-display, sans-serif);">Trustline Finance</div>
+    <div class="text-ink-400 text-[11px] uppercase tracking-wide mt-1">Payment receipt</div>
+  </div>
+
+  <div class="text-center mb-5">
+    <div class="text-ink-400 text-[11px] uppercase tracking-wide">Amount received</div>
+    <div class="font-mono font-bold text-navy-800 text-3xl mt-1">GHS {{ "{:,.2f}".format(repayment.amount) }}</div>
+  </div>
+
+  <div class="space-y-2.5 text-sm border-t border-b border-dashed border-line py-4 mb-4">
+    <div class="flex justify-between"><span class="text-ink-400">Transaction ID</span><span class="font-semibold">{{ repayment.transaction_id }}</span></div>
+    <div class="flex justify-between"><span class="text-ink-400">Date</span><span class="font-semibold">{{ repayment.date.strftime("%d %b %Y") }}</span></div>
+    <div class="flex justify-between"><span class="text-ink-400">Customer</span><span class="font-semibold">{{ loan.customer.full_name }}</span></div>
+    <div class="flex justify-between"><span class="text-ink-400">Account no.</span><span class="font-semibold">{{ loan.customer.customer_code }}</span></div>
+    <div class="flex justify-between"><span class="text-ink-400">Loan reference</span><span class="font-semibold">{{ loan.loan_code }}</span></div>
+    <div class="flex justify-between"><span class="text-ink-400">Collected by</span><span class="font-semibold">{{ repayment.agent.full_name if repayment.agent else "—" }}</span></div>
+    <div class="flex justify-between"><span class="text-ink-400">Recorded by</span><span class="font-semibold">{{ repayment.recorded_by.full_name if repayment.recorded_by else "—" }}</span></div>
+    {% if repayment.note %}
+    <div class="flex justify-between"><span class="text-ink-400">Note</span><span class="font-semibold">{{ repayment.note }}</span></div>
+    {% endif %}
+  </div>
+
+  <div class="space-y-2 text-sm mb-5">
+    <div class="flex justify-between"><span class="text-ink-400">Balance before</span><span>GHS {{ "{:,.2f}".format(balance_before) }}</span></div>
+    <div class="flex justify-between font-semibold text-navy-800"><span>Balance after</span><span>GHS {{ "{:,.2f}".format(balance_after) }}</span></div>
+  </div>
+
+  <div class="text-center text-[11px] text-ink-400 pt-4 border-t border-dashed border-line">
+    Thank you for your payment.<br>Your Cash, Your Growth, Our Priority.
+  </div>
+</div>
+{% endblock %}

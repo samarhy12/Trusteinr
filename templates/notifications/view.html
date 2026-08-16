@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ notification.title }} — Trustline Finance{% endblock %}
+{% block page_title %}{{ notification.title }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">{{ notification.created_at.strftime('%d %b %Y, %I:%M %p') }}</div>{% endblock %}
+
+{% block content %}
+<div class="card w-full">
+  <div class="card-pad">
+    <div class="prose max-w-none">
+      <div class="whitespace-pre-wrap text-ink-700">{{ notification.message }}</div>
+    </div>
+    
+    {% if notification.loan_data and notification.notification_type == 'due_loans' %}
+    <div class="mt-6 space-y-4">
+      {% set due_loans = notification.loan_data.get('due_today', []) %}
+      {% set overdue_loans = notification.loan_data.get('overdue', []) %}
+      {% set summary = notification.loan_data.get('summary', {}) %}
+      
+      {% if due_loans %}
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 class="font-semibold text-blue-800 mb-3">Due Today ({{ due_loans|length }})</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left">
+                <th class="pb-2 font-medium text-blue-900">Customer</th>
+                <th class="pb-2 font-medium text-blue-900">Phone</th>
+                <th class="pb-2 font-medium text-blue-900">Loan Code</th>
+                <th class="pb-2 font-medium text-blue-900 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for loan in due_loans %}
+              <tr class="border-t border-blue-200">
+                <td class="py-2">{{ loan.customer_name }}</td>
+                <td class="py-2">{{ loan.customer_phone }}</td>
+                <td class="py-2">{{ loan.loan_code }}</td>
+                <td class="py-2 text-right font-semibold">GHS {{ "{:,.2f}".format(loan.amount) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+      
+      {% if overdue_loans %}
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <h4 class="font-semibold text-red-800 mb-3">Overdue ({{ overdue_loans|length }})</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left">
+                <th class="pb-2 font-medium text-red-900">Customer</th>
+                <th class="pb-2 font-medium text-red-900">Phone</th>
+                <th class="pb-2 font-medium text-red-900">Loan Code</th>
+                <th class="pb-2 font-medium text-red-900">Days Overdue</th>
+                <th class="pb-2 font-medium text-red-900 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for loan in overdue_loans %}
+              <tr class="border-t border-red-200">
+                <td class="py-2">{{ loan.customer_name }}</td>
+                <td class="py-2">{{ loan.customer_phone }}</td>
+                <td class="py-2">{{ loan.loan_code }}</td>
+                <td class="py-2 font-semibold text-red-700">{{ loan.days_overdue }} day{{ 's' if loan.days_overdue != 1 }}</td>
+                <td class="py-2 text-right font-semibold">GHS {{ "{:,.2f}".format(loan.amount) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+      
+      {% if summary %}
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h4 class="font-semibold text-gray-800 mb-2">Summary</h4>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-gray-600">Due Today:</span>
+            <span class="font-semibold ml-2">{{ summary.due_count }} loans</span>
+          </div>
+          <div>
+            <span class="text-gray-600">Overdue:</span>
+            <span class="font-semibold ml-2">{{ summary.overdue_count }} loans</span>
+          </div>
+          <div>
+            <span class="text-gray-600">Total Due:</span>
+            <span class="font-semibold ml-2">GHS {{ "{:,.2f}".format(summary.total_due_amount) }}</span>
+          </div>
+          <div>
+            <span class="text-gray-600">Total Overdue:</span>
+            <span class="font-semibold ml-2 text-red-700">GHS {{ "{:,.2f}".format(summary.total_overdue_amount) }}</span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="mt-6 flex gap-3">
+      {% if notification.notification_type == 'due_loans' %}
+      <a href="{{ url_for('notifications.print_notification', notification_id=notification.id) }}" class="btn btn-primary btn-sm" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 inline mr-2">
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+        Print Report
+      </a>
+      {% endif %}
+      <a href="{{ url_for('notifications.list_notifications') }}" class="btn btn-outline btn-sm">Back to Notifications</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

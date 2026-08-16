@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Trustline Finance{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">{{ pagination.total if pagination else 0 }} notification{{ 's' if (pagination.total if pagination else 1) != 1 }}</div>{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for notification in notifications %}
+  <a href="{{ url_for('notifications.view_notification', notification_id=notification.id) }}" 
+     class="card card-pad hover:shadow-md transition-shadow cursor-pointer {% if not notification.is_read %}border-l-4 border-l-red-500{% else %}border-l-4 border-l-gray-300{% endif %}">
+    <div class="flex items-start gap-3">
+      <div class="flex-shrink-0">
+        {% if notification.notification_type == 'due_loans' %}
+        <div class="w-10 h-10 rounded-full bg-gold-100 text-gold-700 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 3" />
+          </svg>
+        </div>
+        {% else %}
+        <div class="w-10 h-10 rounded-full bg-navy-100 text-navy-700 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+        </div>
+        {% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <h4 class="font-semibold text-navy-800 text-sm truncate">{{ notification.title }}</h4>
+          {% if not notification.is_read %}
+          <span class="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-ink-600 line-clamp-2">{{ notification.message[:100] }}</p>
+        <div class="flex items-center justify-between mt-2">
+          <span class="text-xs text-ink-400">{{ notification.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+          {% if notification.notification_type == 'due_loans' %}
+          <span class="text-xs text-gold-600 font-medium">Due Loans</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% if not notifications %}
+<div class="empty-state">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h14s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+  <h4>No notifications</h4>
+  <p>You're all caught up! No new notifications to show.</p>
+</div>
+{% endif %}
+
+{% if pagination and pagination.pages > 1 %}
+<div class="mt-6 flex flex-wrap items-center justify-center gap-2">
+  {% if pagination.has_prev %}
+  <a href="{{ url_for('notifications.list_notifications', page=pagination.prev_num) }}" class="btn btn-outline btn-sm">← Prev</a>
+  {% endif %}
+  {% for page_num in range(1, pagination.pages + 1) %}
+  <a href="{{ url_for('notifications.list_notifications', page=page_num) }}" 
+     class="btn btn-sm {{ 'btn-primary' if page_num == pagination.page else 'btn-outline' }}">
+    {{ page_num }}
+  </a>
+  {% endfor %}
+  {% if pagination.has_next %}
+  <a href="{{ url_for('notifications.list_notifications', page=pagination.next_num) }}" class="btn btn-outline btn-sm">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

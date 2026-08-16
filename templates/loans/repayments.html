@@ -1,0 +1,78 @@
+{% extends "base.html" %} {% block title %}Loan repayments — Trustline
+Finance{% endblock %} {% block page_title %}Loan repayments{% endblock %} {%
+block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  {{ pagination.total }} repayment{{ 's' if pagination.total != 1 }} recorded
+  across the business
+</div>
+{% endblock %} {% block content %}
+<div class="card w-full">
+  {% if repayments %}
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Loan</th>
+          <th>Transaction ID</th>
+          <th>Agent</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in repayments %}
+        <tr>
+          <td>{{ r.date.strftime("%d %b %Y") }}</td>
+          <td>
+            <a
+              class="row-link"
+              href="{{ url_for('customers.view_customer', customer_id=r.loan.customer_id) }}"
+              >{{ r.loan.customer.full_name }}</a
+            >
+          </td>
+          <td>
+            <a
+              class="row-link"
+              href="{{ url_for('loans.view_loan', loan_id=r.loan_id) }}"
+              >{{ r.loan.loan_code }}</a
+            >
+          </td>
+          <td>{{ r.transaction_id }}</td>
+          <td>{{ r.agent.full_name if r.agent else '—' }}</td>
+          <td class="num">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h4>No repayments recorded yet</h4>
+    <p>Repayments captured from the field will appear here.</p>
+  </div>
+  {% endif %}
+</div>
+{% if pagination.pages > 1 %}
+<div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+  {% if pagination.has_prev %}
+  <a
+    href="{{ url_for('loans.list_repayments', page=pagination.prev_num) }}"
+    class="btn btn-outline btn-sm"
+    >← Prev</a
+  >
+  {% endif %} {% for page_num in range(1, pagination.pages + 1) %}
+  <a
+    href="{{ url_for('loans.list_repayments', page=page_num) }}"
+    class="btn btn-sm {{ 'btn-primary' if page_num == pagination.page else 'btn-outline' }}"
+    >{{ page_num }}</a
+  >
+  {% endfor %} {% if pagination.has_next %}
+  <a
+    href="{{ url_for('loans.list_repayments', page=pagination.next_num) }}"
+    class="btn btn-outline btn-sm"
+    >Next →</a
+  >
+  {% endif %}
+</div>
+{% endif %} {% endblock %}

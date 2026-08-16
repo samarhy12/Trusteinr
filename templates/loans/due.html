@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Due & Overdue Loans — Trustline Finance{% endblock %}
+{% block page_title %}Due & Overdue Loans{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Payments due today and overdue installments</div>{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+  <div></div>
+  {% if current_user.is_admin %}
+  <form method="POST" action="{{ url_for('loans.send_due_notification') }}" class="inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-gold btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 inline mr-2">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+      </svg>
+      Send Notification
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="space-y-6">
+  <!-- Due Today Section -->
+  <div class="card w-full">
+    <div class="card-header flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-navy-800">Due Today</h3>
+      <span class="badge badge-blue">{{ due_today|length }} loan{{ 's' if due_today|length != 1 }}</span>
+    </div>
+    
+    {% if due_today %}
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Loan Code</th>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Amount Due</th>
+            <th>Outstanding Balance</th>
+            <th>Progress</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for loan in due_today %}
+          <tr>
+            <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=loan.id) }}">{{ loan.loan_code }}</a></td>
+            <td><a class="row-link" href="{{ url_for('customers.view_customer', customer_id=loan.customer_id) }}">{{ loan.customer.full_name }}</a></td>
+            <td>{{ loan.customer.phone_number }}</td>
+            <td class="num font-semibold text-gold-600">GHS {{ "{:,.2f}".format(loan.installment_amount) }}</td>
+            <td class="num">GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+            <td>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-navy-800 h-2 rounded-full" style="width: {{ loan.progress_percent }}%"></div>
+              </div>
+              <div class="text-xs text-ink-400 mt-1">{{ loan.progress_percent }}%</div>
+            </td>
+            <td>
+              <a href="{{ url_for('loans.view_loan', loan_id=loan.id) }}" class="btn btn-outline btn-sm">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-6 text-center text-ink-400">
+      <p>No payments due today.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Overdue Section -->
+  <div class="card w-full">
+    <div class="card-header flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-red-700">Overdue Payments</h3>
+      <span class="badge badge-red">{{ overdue|length }} loan{{ 's' if overdue|length != 1 }}</span>
+    </div>
+    
+    {% if overdue %}
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Loan Code</th>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th>Days Overdue</th>
+            <th>Amount Due</th>
+            <th>Outstanding Balance</th>
+            <th>Progress</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for loan in overdue %}
+          <tr class="bg-red-50">
+            <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=loan.id) }}">{{ loan.loan_code }}</a></td>
+            <td><a class="row-link" href="{{ url_for('customers.view_customer', customer_id=loan.customer_id) }}">{{ loan.customer.full_name }}</a></td>
+            <td>{{ loan.customer.phone_number }}</td>
+            <td class="num font-semibold text-red-700">{{ loan.overdue_days }} day{{ 's' if loan.overdue_days != 1 }}</td>
+            <td class="num font-semibold text-gold-600">GHS {{ "{:,.2f}".format(loan.installment_amount) }}</td>
+            <td class="num">GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+            <td>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-red-600 h-2 rounded-full" style="width: {{ loan.progress_percent }}%"></div>
+              </div>
+              <div class="text-xs text-ink-400 mt-1">{{ loan.progress_percent }}%</div>
+            </td>
+            <td>
+              <a href="{{ url_for('loans.view_loan', loan_id=loan.id) }}" class="btn btn-outline btn-sm">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-6 text-center text-ink-400">
+      <p>No overdue payments.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Summary Card -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% set total_due_today = due_today|map(attribute='installment_amount')|sum %}
+    {% set total_overdue = overdue|map(attribute='installment_amount')|sum %}
+    {% set total_outstanding = (due_today + overdue)|map(attribute='outstanding_balance')|sum %}
+    <div class="stat-card">
+      <div class="stat-label">Total Due Today</div>
+      <div class="stat-value">GHS {{ "{:,.2f}".format(total_due_today) }}</div>
+      <div class="stat-foot">{{ due_today|length }} payment{{ 's' if due_today|length != 1 }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Overdue</div>
+      <div class="stat-value text-red-700">GHS {{ "{:,.2f}".format(total_overdue) }}</div>
+      <div class="stat-foot">{{ overdue|length }} overdue payment{{ 's' if overdue|length != 1 }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Outstanding Balance</div>
+      <div class="stat-value">GHS {{ "{:,.2f}".format(total_outstanding) }}</div>
+      <div class="stat-foot">Total remaining</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

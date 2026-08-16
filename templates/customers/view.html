@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.full_name }} — Trustline Finance{% endblock %}
+{% block page_title %}{{ customer.full_name }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Customer {{ customer.customer_code }} &middot; Registered {{ customer.created_at.strftime("%d %b %Y") }}</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('customers.list_customers') }}">Customers</a><span class="sep">/</span>
+  <span class="current">{{ customer.full_name }}</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+  <div class="w-full min-w-0">
+    <div class="card mb-5 w-full">
+      <div class="card-header">
+        <h3>Loan history</h3>
+        {% if current_user.can_disburse_loans %}
+          {% if loans|selectattr('status', 'equalto', 'active')|list|length > 0 %}
+          <span class="btn btn-gold btn-sm opacity-50 cursor-not-allowed" title="This customer already has an active loan and must complete it before receiving another.">+ New loan</span>
+          {% else %}
+          <a href="{{ url_for('loans.new_loan', customer_id=customer.id) }}" class="btn btn-gold btn-sm">+ New loan</a>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if loans %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Loan</th><th>Principal</th><th>Term</th><th>Outstanding</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for loan in loans %}
+            <tr>
+              <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=loan.id) }}">{{ loan.loan_code }}</a></td>
+              <td class="num">GHS {{ "{:,.2f}".format(loan.principal) }}</td>
+              <td class="capitalize">{{ loan.term_type }}</td>
+              <td class="num">GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+              <td>
+                {% if loan.is_overdue %}<span class="badge badge-red">Overdue</span>
+                {% elif loan.status == 'completed' %}<span class="badge badge-green">Completed</span>
+                {% else %}<span class="badge badge-navy">Active</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><h4>No loans yet</h4><p>Disburse this customer's first loan to begin tracking repayments.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="w-full min-w-0">
+    <div class="card card-pad mb-5 w-full">
+      <div class="flex justify-between items-center mb-4">
+        <h3>Profile</h3>
+        <div class="flex gap-2">
+          <a href="{{ url_for('customers.customer_statement', customer_id=customer.id) }}" class="btn btn-outline btn-sm">Statement</a>
+          {% if current_user.can_edit_customers %}
+          <a href="{{ url_for('customers.edit_customer', customer_id=customer.id) }}" class="btn btn-outline btn-sm">Edit</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4 mb-5">
+        {% if customer.photo_filename %}
+        <img src="{{ url_for('static', filename='uploads/customers/' + customer.photo_filename) }}"
+             alt="{{ customer.full_name }}" class="w-20 h-20 rounded-full object-cover border border-line flex-shrink-0">
+        {% else %}
+        <div class="w-20 h-20 rounded-full bg-navy-800 text-gold-400 flex items-center justify-center font-display font-semibold text-2xl flex-shrink-0">
+          {{ customer.full_name[:1] }}
+        </div>
+        {% endif %}
+        <div>
+          <div class="font-semibold text-navy-800">{{ customer.full_name }}</div>
+          <div class="text-ink-400 text-sm">{{ customer.customer_code }} &middot; Reg. #{{ customer.registration_number }}</div>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-2 gap-y-3.5 text-sm">
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Registration #</dt><dd class="m-0">{{ customer.registration_number }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Gender</dt><dd class="m-0">{{ customer.gender }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Age</dt><dd class="m-0">{{ customer.age }} years</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Date of birth</dt><dd class="m-0">{{ customer.date_of_birth.strftime("%d %b %Y") }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Phone</dt><dd class="m-0">{{ customer.phone_number }}</dd></div>
+        <div class="col-span-2"><dt class="text-ink-400 text-[11.5px] uppercase">Address</dt><dd class="m-0">{{ customer.residential_address }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">ID type</dt><dd class="m-0">{{ customer.id_type }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">ID number</dt><dd class="m-0">{{ customer.id_number }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Occupation</dt><dd class="m-0">{{ customer.occupation }}</dd></div>
+        <div><dt class="text-ink-400 text-[11.5px] uppercase">Employment</dt><dd class="m-0">{{ customer.employment_status }}</dd></div>
+        {% if customer.business_type %}
+        <div class="col-span-2"><dt class="text-ink-400 text-[11.5px] uppercase">Business type</dt><dd class="m-0">{{ customer.business_type }}</dd></div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <div class="card card-pad w-full">
+      <h3 class="mb-3.5">Lending summary</h3>
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-ink-400 text-sm">Total borrowed</span>
+        <span class="ledger-figure">GHS {{ "{:,.2f}".format(customer.total_borrowed) }}</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-ink-400 text-sm">Active loans</span>
+        <span class="font-semibold">{{ customer.active_loans|length }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

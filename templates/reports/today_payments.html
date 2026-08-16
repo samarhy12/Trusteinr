@@ -1,0 +1,89 @@
+{% extends "base.html" %} {% block title %}Payments for today — Trustline
+Finance{% endblock %} {% block page_title %}Payments for today{% endblock %} {%
+block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  Repayments captured on {{ today.strftime('%d %b %Y') }}
+</div>
+{% endblock %} {% block content %}
+<div class="card card-pad mb-4 no-print">
+  <div
+    class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3"
+  >
+    <div>
+      <h3 class="text-lg">Filter report</h3>
+      <p class="text-sm text-ink-400">
+        Search by customer, loan, or transaction ID.
+      </p>
+    </div>
+    <form method="GET" class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+      <input
+        type="text"
+        name="q"
+        value="{{ q }}"
+        placeholder="Search customer, loan or transaction ID"
+        class="min-w-[260px]"
+      />
+      <button type="submit" class="btn btn-primary">Apply</button>
+      <a href="{{ url_for('reports.today_payments') }}" class="btn btn-outline"
+        >Reset</a
+      >
+      <button onclick="window.print()" type="button" class="btn btn-outline">
+        Print
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card w-full">
+  {% if repayments %}
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Customer</th>
+          <th>Loan</th>
+          <th>Transaction ID</th>
+          <th>Agent</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in repayments %}
+        <tr>
+          <td>
+            {{ r.created_at.strftime('%I:%M %p') if r.created_at else '—' }}
+          </td>
+          <td>
+            <a
+              class="row-link"
+              href="{{ url_for('customers.view_customer', customer_id=r.loan.customer_id) }}"
+              >{{ r.loan.customer.full_name }}</a
+            >
+          </td>
+          <td>
+            <a
+              class="row-link"
+              href="{{ url_for('loans.view_loan', loan_id=r.loan_id) }}"
+              >{{ r.loan.loan_code }}</a
+            >
+          </td>
+          <td>{{ r.transaction_id }}</td>
+          <td>{{ r.agent.full_name if r.agent else '—' }}</td>
+          <td class="num">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h4>No repayments match the current filter</h4>
+    <p>
+      Try a different search term or clear the filter to review all today’s
+      payments.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

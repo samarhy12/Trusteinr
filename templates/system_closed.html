@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>System closed — Trustline Finance</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
+</head>
+<body class="font-body text-ink-900 bg-cream-100 min-h-screen flex items-center justify-center px-6">
+  <div class="max-w-md w-full text-center">
+    <img src="{{ url_for('static', filename='icons/logo-mark.png') }}" alt="Trustline Finance" class="w-16 h-16 object-contain mx-auto mb-6">
+
+    <div class="card card-pad">
+      <div class="w-14 h-14 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="w-7 h-7">
+          <rect x="4" y="10" width="16" height="10" rx="2"/>
+          <path d="M8 10V7a4 4 0 118 0v3"/>
+        </svg>
+      </div>
+
+      {% if is_weekend_today %}
+      <h2 class="text-xl mb-2">Closed for the weekend</h2>
+      <p class="text-ink-400 text-sm mb-1">Trustline Finance is closed on Saturdays and Sundays for agents and office staff.</p>
+      <p class="text-ink-400 text-sm">Please check back on Monday, or contact an administrator if this is urgent.</p>
+      {% else %}
+      <h2 class="text-xl mb-2">The business day is closed</h2>
+      <p class="text-ink-400 text-sm mb-1">An administrator hasn't opened today yet, or has already closed it.</p>
+      <p class="text-ink-400 text-sm">Please check back once an admin opens the day.</p>
+      {% endif %}
+
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-block mt-6">Sign out</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{% extends "base.html" %} {% block title %}Reports — Trustline Finance{%
+endblock %} {% block page_title %}Reports{% endblock %} {% block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  Operational reporting hub for collections, loans, and cash movement
+</div>
+{% endblock %} {% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+  <div class="card card-pad">
+    <div class="text-sm text-ink-400">Today’s payments</div>
+    <div class="text-3xl font-semibold mt-2">{{ repayments_today }}</div>
+    <div class="text-xs text-ink-400 mt-1">Captured today</div>
+  </div>
+  <div class="card card-pad">
+    <div class="text-sm text-ink-400">This week</div>
+    <div class="text-3xl font-semibold mt-2">{{ repayments_week }}</div>
+    <div class="text-xs text-ink-400 mt-1">Repayments in the last 7 days</div>
+  </div>
+  <div class="card card-pad">
+    <div class="text-sm text-ink-400">Active loans</div>
+    <div class="text-3xl font-semibold mt-2">{{ active_loans }}</div>
+    <div class="text-xs text-ink-400 mt-1">{{ overdue_count }} overdue</div>
+  </div>
+  <div class="card card-pad">
+    <div class="text-sm text-ink-400">Customers</div>
+    <div class="text-3xl font-semibold mt-2">{{ total_customers }}</div>
+    <div class="text-xs text-ink-400 mt-1">Registered on the platform</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-5">
+  <div class="card card-pad">
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <div>
+        <h3 class="text-lg">Quick reports</h3>
+        <p class="text-sm text-ink-400">
+          Jump straight to the report you need.
+        </p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <a
+        href="{{ url_for('reports.today_payments') }}"
+        class="rounded-xl border border-line bg-cream-50 p-4 hover:border-gold-400 hover:bg-white transition-all"
+      >
+        <div class="font-semibold mb-1">Payments for today</div>
+        <div class="text-sm text-ink-400">
+          Filter and review today’s collections by customer, loan, or
+          transaction ID.
+        </div>
+      </a>
+      <a
+        href="{{ url_for('loans.list_repayments') }}"
+        class="rounded-xl border border-line bg-cream-50 p-4 hover:border-gold-400 hover:bg-white transition-all"
+      >
+        <div class="font-semibold mb-1">All repayments</div>
+        <div class="text-sm text-ink-400">
+          Browse the full repayment history with pagination and print support.
+        </div>
+      </a>
+      <a
+        href="{{ url_for('staff.transactions') }}"
+        class="rounded-xl border border-line bg-cream-50 p-4 hover:border-gold-400 hover:bg-white transition-all"
+      >
+        <div class="font-semibold mb-1">Cash ledger</div>
+        <div class="text-sm text-ink-400">
+          View every disbursement, repayment, expense, and adjustment in one
+          place.
+        </div>
+      </a>
+      <a
+        href="{{ url_for('expenses.list_expenses') }}"
+        class="rounded-xl border border-line bg-cream-50 p-4 hover:border-gold-400 hover:bg-white transition-all"
+      >
+        <div class="font-semibold mb-1">Expenses</div>
+        <div class="text-sm text-ink-400">
+          Monitor running costs and export the list when needed.
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <div class="card card-pad">
+    <h3 class="text-lg mb-3">Report shortcuts</h3>
+    <div class="space-y-3">
+      <div class="rounded-lg border border-line p-3">
+        <div class="text-sm text-ink-400">Expenses this week</div>
+        <div class="text-xl font-semibold">{{ expenses_week }}</div>
+      </div>
+      <div class="rounded-lg border border-line p-3">
+        <div class="text-sm text-ink-400">Cash collected</div>
+        <div class="text-xl font-semibold">
+          GHS {{ "{:,.2f}".format(cash_in) }}
+        </div>
+      </div>
+      <div class="rounded-lg border border-line p-3">
+        <div class="text-sm text-ink-400">Cash disbursed / spent</div>
+        <div class="text-xl font-semibold">
+          GHS {{ "{:,.2f}".format(cash_out) }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

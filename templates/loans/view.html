@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}{{ loan.loan_code }} — Trustline Finance{% endblock %}
+{% block page_title %}Loan {{ loan.loan_code }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5"><a class="row-link" href="{{ url_for('customers.view_customer', customer_id=loan.customer_id) }}">{{ loan.customer.full_name }}</a> &middot; Disbursed {{ loan.start_date.strftime("%d %b %Y") }}</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('loans.list_loans') }}">Loans</a><span class="sep">/</span>
+  <span class="current">{{ loan.loan_code }}</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">Principal</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.principal) }}</div>
+    <div class="stat-foot">
+      {{ "%.1f"|format(loan.interest_rate * 100) }}% interest &times; {{ loan.duration_value }}
+      {{ "month" if loan.term_type == "monthly" else "week" if loan.term_type == "weekly" else "day" }}{{ "s" if loan.duration_value != 1 }}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total repayable</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.total_repayable) }}</div>
+    <div class="stat-foot">Interest: GHS {{ "{:,.2f}".format(loan.total_interest) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Amount paid</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.amount_paid) }}</div>
+    <div class="stat-foot">{{ loan.progress_percent }}% of repayable</div>
+  </div>
+  <div class="stat-card {{ 'warn' if loan.is_overdue }}">
+    <div class="stat-label">Outstanding</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</div>
+    <div class="stat-foot">Matures {{ loan.end_date.strftime("%d %b %Y") }}</div>
+  </div>
+</div>
+
+<div class="card card-pad mb-6 w-full">
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+    <div>
+      <strong class="text-sm">Repayment progress</strong>
+      <div class="text-ink-400 text-xs mt-0.5">
+        {{ loan.term_type|capitalize }} term &middot; {{ loan.number_of_installments }} installments of
+        GHS {{ "{:,.2f}".format(loan.installment_amount) }} each
+      </div>
+    </div>
+    {% if loan.is_overdue %}<span class="badge badge-red">Overdue</span>
+    {% elif loan.status == 'completed' %}<span class="badge badge-green">Completed</span>
+    {% else %}<span class="badge badge-navy">Active</span>{% endif %}
+  </div>
+  <div class="progress-track"><div class="progress-fill" style="width:{{ loan.progress_percent }}%"></div></div>
+</div>
+
+<div class="card card-pad mb-6 w-full">
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide mb-1">Guarantor</div>
+      {% if loan.guarantor_name %}
+      <div class="font-semibold text-navy-800">{{ loan.guarantor_name }}</div>
+      <div class="text-ink-400 text-sm">{{ loan.guarantor_phone }}</div>
+      {% if loan.guarantor and loan.guarantor.relationship_to_customer %}
+      <div class="text-ink-400 text-xs mt-1">Relationship: {{ loan.guarantor.relationship_to_customer }}</div>
+      {% endif %}
+      {% if loan.guarantor_customer %}
+      <a href="{{ url_for('customers.view_customer', customer_id=loan.guarantor_customer_id) }}" class="text-gold-500 text-xs font-semibold">View customer profile</a>
+      {% endif %}
+      {% else %}
+      <div class="text-ink-400 text-sm">No guarantor on record</div>
+      {% endif %}
+    </div>
+    {% if loan.guarantor and loan.guarantor.photo_filename %}
+    <img src="{{ url_for('static', filename='uploads/customers/' + loan.guarantor.photo_filename) }}"
+         alt="{{ loan.guarantor.full_name }}" class="w-14 h-14 rounded-full object-cover border border-line flex-shrink-0">
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+  <div class="card w-full min-w-0">
+    <div class="card-header"><h3>Repayment history</h3></div>
+    {% if repayments %}
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>Transaction ID</th><th>Date</th><th>Amount</th><th>Agent</th><th>Recorded by</th><th>Note</th><th></th></tr></thead>
+        <tbody>
+          {% for r in repayments %}
+          <tr>
+            <td>{{ r.transaction_id }}</td>
+            <td>{{ r.date.strftime("%d %b %Y") }}</td>
+            <td class="num">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+            <td><a class="row-link" href="{{ url_for('agents.agent_detail', agent_id=r.agent_id) }}">{{ r.agent.full_name if r.agent else "—" }}</a></td>
+            <td>{{ r.recorded_by.full_name if r.recorded_by else "—" }}</td>
+            <td class="text-ink-400">{{ r.note or "—" }}</td>
+            <td><a href="{{ url_for('loans.repayment_receipt', loan_id=loan.id, repayment_id=r.id) }}" class="btn btn-outline btn-sm">Receipt</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><h4>No repayments recorded yet</h4><p>Record the first repayment using the form.</p></div>
+    {% endif %}
+  </div>
+
+  <div class="card card-pad w-full min-w-0">
+    <h3 class="mb-4">Record a repayment</h3>
+    {% if not current_user.can_record_repayments %}
+    <div class="empty-state py-8 px-2.5">
+      <h4>View only</h4>
+      <p>Your role can view repayments but not record them.</p>
+    </div>
+    {% elif loan.outstanding_balance > 0 %}
+    <form method="POST" action="{{ url_for('loans.record_repayment', loan_id=loan.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field mb-4">
+        <label for="agent_id">Collected by (agent)</label>
+        <select id="agent_id" name="agent_id" required>
+          <option value="" disabled selected>Select the agent who collected this</option>
+          {% for a in agents %}
+          <option value="{{ a.id }}">{{ a.full_name }}</option>
+          {% endfor %}
+        </select>
+        {% if not agents %}
+        <span class="hint">No active agent accounts yet — create one under Staff Accounts.</span>
+        {% endif %}
+      </div>
+      <div class="field mb-4">
+        <label for="amount">Amount (GHS)</label>
+        <input type="number" id="amount" name="amount" min="0.01" step="0.01" max="{{ loan.outstanding_balance }}" required>
+        <span class="hint">Outstanding balance: GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</span>
+      </div>
+      <div class="field mb-4">
+        <label for="date">Payment date</label>
+        <input type="date" id="date" name="date" value="{{ today.isoformat() }}" required>
+      </div>
+      <div class="field mb-4">
+        <label for="note">Note <span class="hint">(optional)</span></label>
+        <input type="text" id="note" name="note" placeholder="e.g. Mobile money, cash at counter">
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Record repayment</button>
+    </form>
+    {% else %}
+    <div class="empty-state py-8 px-2.5">
+      <h4>Loan fully repaid</h4>
+      <p>This loan has no outstanding balance.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

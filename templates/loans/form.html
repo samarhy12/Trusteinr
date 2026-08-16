@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}New loan — Trustline Finance{% endblock %}
+{% block page_title %}Disburse a new loan{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Choose the duration and interest rate for this loan</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('loans.list_loans') }}">Loans</a><span class="sep">/</span>
+  <span class="current">Disburse loan</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+  <div class="card card-pad w-full min-w-0">
+    <form method="POST" enctype="multipart/form-data" novalidate
+          x-data="{ guarantorType: '{{ form.get('guarantor_type', 'existing') }}', gPreview: null,
+                     termType: '{{ form.get('term_type', 'daily') }}', interestChoice: '{{ form.get('interest_choice', 'standard') }}' }">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+        <div class="form-section-title">Loan details</div>
+        <div class="field sm:col-span-2">
+          <label for="customer_id">Customer</label>
+          <select id="customer_id" name="customer_id" required>
+            <option value="" disabled {{ 'selected' if not selected_customer_id }}>Select a customer</option>
+            {% for c in customers %}
+            <option value="{{ c.id }}" {{ 'selected' if selected_customer_id == c.id or form.get('customer_id')|string == c.id|string }}>{{ c.full_name }} &mdash; {{ c.customer_code }}</option>
+            {% endfor %}
+          </select>
+          {% if not customers %}
+          <span class="hint">No customers registered yet. <a href="{{ url_for('customers.new_customer') }}" class="text-gold-500 font-semibold">Register one first</a>.</span>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <label for="principal">Loan amount (GHS)</label>
+          <input type="number" id="principal" name="principal" min="1" step="0.01" required
+                 value="{{ form.get('principal','') }}" data-loan-principal>
+        </div>
+        <div class="field">
+          <label for="start_date">Disbursement date</label>
+          <input type="date" id="start_date" name="start_date" required
+                 value="{{ form.get('start_date') or today }}" data-loan-start>
+        </div>
+
+        <div class="field sm:col-span-2">
+          <label>Repayment term</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="radio-card">
+              <input type="radio" name="term_type" value="daily" data-loan-term x-model="termType" {{ 'checked' if form.get('term_type','daily') == 'daily' }}>
+              <div class="rc-title">Daily</div>
+              <div class="rc-sub">Monday – Friday (weekends excluded)</div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="term_type" value="weekly" data-loan-term x-model="termType" {{ 'checked' if form.get('term_type') == 'weekly' }}>
+              <div class="rc-title">Weekly</div>
+              <div class="rc-sub">One installment per week</div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="term_type" value="monthly" data-loan-term x-model="termType" {{ 'checked' if form.get('term_type') == 'monthly' }}>
+              <div class="rc-title">Monthly</div>
+              <div class="rc-sub">One installment per month</div>
+            </label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>
+            Duration
+            <span x-text="termType === 'daily' ? '(number of days)' : termType === 'weekly' ? '(number of weeks)' : '(number of months)'"></span>
+          </label>
+          <input type="number" name="duration_value" min="1" step="1" required
+                 value="{{ form.get('duration_value', '') }}" data-loan-duration
+                 :placeholder="termType === 'daily' ? 'e.g. 45' : termType === 'weekly' ? 'e.g. 6' : 'e.g. 3'">
+          <span class="hint" x-show="termType === 'daily'">Collections still only happen on weekdays.</span>
+        </div>
+
+        <div class="field">
+          <label>Interest rate</label>
+          <div class="flex gap-3">
+            <label class="radio-card flex-1">
+              <input type="radio" name="interest_choice" value="standard" x-model="interestChoice" {{ 'checked' if form.get('interest_choice','standard') == 'standard' }}>
+              <div class="rc-title">{{ "%.0f"|format(standard_rate_pct) }}% <span class="font-normal text-ink-400 text-xs">/ month</span></div>
+              <div class="rc-sub">Standard rate</div>
+            </label>
+            <label class="radio-card flex-1">
+              <input type="radio" name="interest_choice" value="custom" x-model="interestChoice" {{ 'checked' if form.get('interest_choice') == 'custom' }}>
+              <div class="rc-title">Custom</div>
+              <div class="rc-sub">Enter your own %</div>
+            </label>
+          </div>
+          <div x-show="interestChoice === 'custom'" x-cloak class="mt-2.5">
+            <input type="number" name="custom_interest_rate" min="0.1" max="100" step="0.1" data-loan-rate
+                   value="{{ form.get('custom_interest_rate', '') }}" placeholder="e.g. 12.5">
+            <span class="hint">Percent per month.</span>
+          </div>
+        </div>
+
+        <div class="form-section-title">Guarantor</div>
+        <div class="field sm:col-span-2">
+          <div class="grid grid-cols-2 gap-3">
+            <label class="radio-card">
+              <input type="radio" name="guarantor_type" value="existing" x-model="guarantorType">
+              <div class="rc-title">Existing customer</div>
+              <div class="rc-sub">Pick someone already registered</div>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="guarantor_type" value="new" x-model="guarantorType">
+              <div class="rc-title">New person</div>
+              <div class="rc-sub">Not yet a customer</div>
+            </label>
+          </div>
+        </div>
+
+        <div class="field sm:col-span-2" x-show="guarantorType === 'existing'">
+          <label for="guarantor_customer_id">Guarantor (existing customer)</label>
+          <select id="guarantor_customer_id" name="guarantor_customer_id">
+            <option value="" disabled selected>Select the guarantor</option>
+            {% for c in customers %}
+            <option value="{{ c.id }}" {{ 'selected' if form.get('guarantor_customer_id')|string == c.id|string }}>{{ c.full_name }} &mdash; {{ c.customer_code }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <template x-if="guarantorType === 'new'">
+          <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+            <div class="field sm:col-span-2">
+              <label>Guarantor's passport picture <span class="hint">(PNG or JPG, optional)</span></label>
+              <div class="flex items-center gap-5">
+                <label for="guarantor_photo"
+                       class="group relative w-20 h-20 rounded-full flex-shrink-0 overflow-hidden border-2 border-dashed border-line
+                              bg-cream-100 flex items-center justify-center cursor-pointer transition-colors hover:border-gold-500"
+                       :class="gPreview ? '!border-solid !border-line' : ''">
+                  <template x-if="gPreview">
+                    <img :src="gPreview" class="w-full h-full object-cover" alt="Guarantor preview">
+                  </template>
+                  <template x-if="!gPreview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="w-6 h-6 text-ink-400 group-hover:text-gold-500 transition-colors">
+                      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  </template>
+                </label>
+                <div class="flex-1">
+                  <label for="guarantor_photo" class="btn btn-outline btn-sm cursor-pointer inline-flex" x-text="gPreview ? 'Change photo' : 'Choose photo'"></label>
+                  <input type="file" id="guarantor_photo" name="guarantor_photo" accept="image/png,image/jpeg" class="hidden"
+                         @change="const f = $event.target.files[0]; if (f) gPreview = URL.createObjectURL(f);">
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="guarantor_full_name">Full name</label>
+              <input type="text" id="guarantor_full_name" name="guarantor_full_name" value="{{ form.get('guarantor_full_name','') }}">
+            </div>
+            <div class="field">
+              <label for="guarantor_gender">Gender</label>
+              <select id="guarantor_gender" name="guarantor_gender">
+                <option value="" disabled selected>Select gender</option>
+                {% for g in genders %}
+                <option value="{{ g }}" {{ 'selected' if form.get('guarantor_gender') == g }}>{{ g }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label for="guarantor_date_of_birth">Date of birth</label>
+              <input type="date" id="guarantor_date_of_birth" name="guarantor_date_of_birth" max="{{ max_dob }}"
+                     value="{{ form.get('guarantor_date_of_birth','') }}">
+              <span class="hint">Guarantor must be at least 18 years old.</span>
+            </div>
+            <div class="field">
+              <label for="guarantor_phone_number">Phone number</label>
+              <input type="tel" id="guarantor_phone_number" name="guarantor_phone_number" placeholder="024xxxxxxx"
+                     value="{{ form.get('guarantor_phone_number','') }}">
+            </div>
+            <div class="field">
+              <label for="guarantor_id_type">ID type</label>
+              <select id="guarantor_id_type" name="guarantor_id_type">
+                <option value="" disabled selected>Select ID type</option>
+                {% for t in id_types %}
+                <option value="{{ t }}" {{ 'selected' if form.get('guarantor_id_type') == t }}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label for="guarantor_id_number">ID number</label>
+              <input type="text" id="guarantor_id_number" name="guarantor_id_number" value="{{ form.get('guarantor_id_number','') }}">
+            </div>
+            <div class="field sm:col-span-2">
+              <label for="guarantor_residential_address">Residential address</label>
+              <textarea id="guarantor_residential_address" name="guarantor_residential_address">{{ form.get('guarantor_residential_address','') }}</textarea>
+            </div>
+            <div class="field">
+              <label for="guarantor_occupation">Occupation</label>
+              <input type="text" id="guarantor_occupation" name="guarantor_occupation" value="{{ form.get('guarantor_occupation','') }}">
+            </div>
+            <div class="field">
+              <label for="guarantor_employment_status">Employment status</label>
+              <select id="guarantor_employment_status" name="guarantor_employment_status">
+                <option value="" disabled selected>Select status</option>
+                {% for s in employment_statuses %}
+                <option value="{{ s }}" {{ 'selected' if form.get('guarantor_employment_status') == s }}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field sm:col-span-2">
+              <label for="guarantor_business_type">Type of business <span class="hint">(if self-employed / trading)</span></label>
+              <input type="text" id="guarantor_business_type" name="guarantor_business_type" value="{{ form.get('guarantor_business_type','') }}">
+            </div>
+            <div class="field">
+              <label for="guarantor_relationship_to_customer">Relationship to customer</label>
+              <select id="guarantor_relationship_to_customer" name="guarantor_relationship_to_customer" required>
+                <option value="" disabled selected>Select relationship</option>
+                {% for r in relationships %}
+                <option value="{{ r }}" {{ 'selected' if form.get('guarantor_relationship_to_customer') == r }}>{{ r }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-6">
+        <button type="submit" class="btn btn-gold" {{ 'disabled' if not customers }}>Disburse loan</button>
+        <a href="{{ url_for('loans.list_loans') }}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card card-pad w-full min-w-0">
+    <h3 class="mb-4">Repayment schedule preview</h3>
+    <div data-loan-preview data-standard-rate="{{ standard_rate_pct }}">
+      <p class="text-ink-400 text-sm">Enter a loan amount to see the repayment schedule.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

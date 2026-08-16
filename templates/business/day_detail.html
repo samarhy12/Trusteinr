@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ target_date.strftime("%d %b %Y") }} — Trustline Finance{% endblock %}
+{% block page_title %}Day report — {{ target_date.strftime("%d %b %Y") }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">{{ target_date.strftime("%A") }}{% if row and row.closed_at %} &middot; closed {{ row.closed_at.strftime("%I:%M %p") }}{% endif %}</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('business.overview') }}">Business Day</a><span class="sep">/</span>
+  <span class="current">{{ target_date.strftime("%d %b %Y") }}</span>
+</nav>
+{% endblock %}
+
+{% block main_class %}print-landscape{% endblock %}
+
+{% block content %}
+<div class="flex justify-end mb-4 no-print">
+  <button onclick="window.print()" class="btn btn-primary btn-sm">Print / Save as PDF</button>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="stat-card">
+    <div class="stat-label">Total collected</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(total_collected) }}</div>
+    <div class="stat-foot">Across all agents</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total disbursed</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(total_disbursed) }}</div>
+    <div class="stat-foot">{{ loans_disbursed|length }} loan{{ 's' if loans_disbursed|length != 1 }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total expenses</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(total_expenses) }}</div>
+    <div class="stat-foot">{{ expenses|length }} entr{{ 'y' if expenses|length == 1 else 'ies' }}</div>
+  </div>
+  <div class="stat-card {{ 'warn' if net_change < 0 }}">
+    <div class="stat-label">Net cash change</div>
+    <div class="stat-value">GHS {{ "{:,.2f}".format(net_change) }}</div>
+    <div class="stat-foot">Collected &minus; disbursed &minus; expenses</div>
+  </div>
+</div>
+
+<div class="card w-full mb-6">
+  <div class="card-header"><h3>Agent collections</h3></div>
+  {% if agent_groups %}
+  {% for g in agent_groups %}
+  <div class="px-6 pt-5">
+    <div class="flex justify-between items-center mb-2">
+      <a href="{{ url_for('agents.agent_detail', agent_id=g.agent.id, view='day', date=target_date.isoformat()) }}" class="font-semibold text-navy-800">{{ g.agent.full_name if g.agent else "Unknown agent" }}</a>
+      <span class="ledger-figure">GHS {{ "{:,.2f}".format(g.subtotal) }}</span>
+    </div>
+  </div>
+  <div class="overflow-x-auto px-6 pb-5">
+    <table class="data-table">
+      <thead><tr><th>Transaction ID</th><th>Customer</th><th>Account no.</th><th>Contact</th><th>Loan</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% for r in g.rows %}
+        <tr>
+          <td><a class="row-link" href="{{ url_for('loans.repayment_receipt', loan_id=r.loan_id, repayment_id=r.id) }}">{{ r.transaction_id }}</a></td>
+          <td><a class="row-link" href="{{ url_for('customers.view_customer', customer_id=r.loan.customer_id) }}">{{ r.loan.customer.full_name }}</a></td>
+          <td>{{ r.loan.customer.customer_code }}</td>
+          <td>{{ r.loan.customer.phone_number }}</td>
+          <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=r.loan_id) }}">{{ r.loan.loan_code }}</a></td>
+          <td class="num">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+  <div class="flex justify-between items-center px-6 py-4 border-t border-line">
+    <span class="font-semibold">Grand total, all agents</span>
+    <span class="ledger-figure text-lg">GHS {{ "{:,.2f}".format(total_collected) }}</span>
+  </div>
+  {% else %}
+  <div class="empty-state"><h4>No collections recorded on this day</h4></div>
+  {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+  <div class="card w-full">
+    <div class="card-header"><h3>Loans disbursed</h3></div>
+    {% if loans_disbursed %}
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>Loan</th><th>Customer</th><th>Amount</th></tr></thead>
+        <tbody>
+          {% for l in loans_disbursed %}
+          <tr>
+            <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=l.id) }}">{{ l.loan_code }}</a></td>
+            <td>{{ l.customer.full_name }}</td>
+            <td class="num">GHS {{ "{:,.2f}".format(l.principal) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><h4>No loans disbursed this day</h4></div>
+    {% endif %}
+  </div>
+
+  <div class="card w-full">
+    <div class="card-header"><h3>Expenses</h3></div>
+    {% if expenses %}
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+        <tbody>
+          {% for e in expenses %}
+          <tr>
+            <td><span class="badge badge-gray">{{ e.category }}</span></td>
+            <td>{{ e.description }}</td>
+            <td class="num text-red-700">-{{ "{:,.2f}".format(e.amount) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><h4>No expenses recorded this day</h4></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Statement — {{ customer.full_name }}{% endblock %}
+{% block page_title %}Customer statement{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">{{ customer.full_name }} &middot; {{ customer.customer_code }}</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('customers.list_customers') }}">Customers</a><span class="sep">/</span>
+  <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}">{{ customer.full_name }}</a><span class="sep">/</span>
+  <span class="current">Statement</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-end gap-2 mb-4 no-print">
+  <a href="{{ url_for('customers.view_customer', customer_id=customer.id) }}" class="btn btn-outline btn-sm">Back to profile</a>
+  <button onclick="window.print()" class="btn btn-primary btn-sm">Print / Save as PDF</button>
+</div>
+
+<div class="card card-pad w-full max-w-4xl mx-auto" id="statement-sheet">
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 pb-6 border-b border-line">
+    <div class="flex items-center gap-3">
+      <img src="{{ url_for('static', filename='icons/logo-mark.png') }}" alt="Trustline Finance" class="w-12 h-12 object-contain">
+      <div>
+        <div class="font-display font-semibold text-navy-800 text-lg leading-tight">Trustline Finance</div>
+        <div class="text-ink-400 text-xs">Customer account statement</div>
+      </div>
+    </div>
+    <div class="text-sm sm:text-right">
+      <div class="text-ink-400 text-xs uppercase tracking-wide">Generated</div>
+      <div class="font-medium">{{ generated_at.strftime("%d %b %Y, %I:%M %p") }}</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 text-sm">
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Customer</div>
+      <div class="font-semibold">{{ customer.full_name }}</div>
+    </div>
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Customer code</div>
+      <div class="font-semibold">{{ customer.customer_code }}</div>
+    </div>
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Phone</div>
+      <div class="font-semibold">{{ customer.phone_number }}</div>
+    </div>
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">ID number</div>
+      <div class="font-semibold">{{ customer.id_type }} &middot; {{ customer.id_number }}</div>
+    </div>
+  </div>
+
+  {% if entries %}
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead>
+        <tr><th>Date</th><th>Description</th><th>Debit (owed)</th><th>Credit (paid)</th><th>Balance</th></tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td>{{ e.date.strftime("%d %b %Y") }}</td>
+          <td>{{ e.description }}</td>
+          <td class="num">{{ "GHS {:,.2f}".format(e.debit) if e.debit else "—" }}</td>
+          <td class="num">{{ "GHS {:,.2f}".format(e.credit) if e.credit else "—" }}</td>
+          <td class="num font-semibold">GHS {{ "{:,.2f}".format(e.balance) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-line text-sm">
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Total borrowed</div>
+      <div class="ledger-figure">GHS {{ "{:,.2f}".format(total_borrowed) }}</div>
+    </div>
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Total repaid</div>
+      <div class="ledger-figure">GHS {{ "{:,.2f}".format(total_paid) }}</div>
+    </div>
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide">Current balance owed</div>
+      <div class="ledger-figure text-navy-800">GHS {{ "{:,.2f}".format(outstanding) }}</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state"><h4>No loan activity yet</h4><p>This customer has no loans or repayments on record.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

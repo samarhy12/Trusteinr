@@ -1,0 +1,158 @@
+{% extends "base.html" %} {% block title %}Transactions — Trustline Finance{%
+endblock %} {% block page_title %}Cash Ledger{% endblock %} {% block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  Every disbursement, repayment and adjustment on record
+</div>
+{% endblock %} {% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
+  <div class="card w-full min-w-0">
+    {% if transactions %}
+    <div class="tx-list">
+      {% for tx in transactions %}
+      <div class="tx-row">
+        <div class="tx-icon {{ 'in' if tx.amount > 0 else 'out' }}">
+          {% if tx.tx_type == 'capital_in' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 3v12M7 10l5 5 5-5" />
+            <path d="M4 19h16" />
+          </svg>
+          {% elif tx.tx_type == 'disbursement' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M7 17L17 7M8 7h9v9" />
+          </svg>
+          {% elif tx.tx_type == 'repayment' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          {% elif tx.tx_type == 'expense' %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+            <path d="M9 8h6M9 12h6" />
+          </svg>
+          {% else %}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M4 12h16M4 6h16M4 18h16" />
+          </svg>
+          {% endif %}
+        </div>
+        <div class="tx-body">
+          <div class="tx-title">
+            {{ tx.description or tx.tx_type.replace('_',' ')|capitalize }}
+          </div>
+          <div class="tx-sub">
+            {{ tx.date.strftime("%d %b %Y") }} &middot; {{
+            tx.tx_type.replace('_',' ')|capitalize }} &middot; recorded by {{
+            tx.staff.full_name if tx.staff else "—" }}
+          </div>
+        </div>
+        <div class="tx-amount {{ 'in' if tx.amount > 0 else 'out' }}">
+          {{ '+' if tx.amount > 0 else '' }}{{ "{:,.2f}".format(tx.amount) }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><h4>No transactions yet</h4></div>
+    {% endif %}
+  </div>
+
+  <div class="w-full min-w-0">
+    <div class="card card-pad mb-5 w-full">
+      <div class="stat-label">Current cash in hand</div>
+      <div class="stat-value text-[28px]">
+        GHS {{ "{:,.2f}".format(cash_in_hand) }}
+      </div>
+    </div>
+
+    {% if current_user.is_admin %}
+    <div class="card card-pad w-full">
+      <h3 class="mb-1">Adjust cash ledger</h3>
+      <p class="text-ink-400 text-xs mb-3.5">
+        Admin only. Your password confirms this change.
+      </p>
+      <form method="POST" action="{{ url_for('staff.add_capital') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="field mb-4">
+          <label for="amount">Amount (GHS)</label>
+          <input type="number" id="amount" name="amount" step="0.01" required />
+          <span class="hint"
+            >Positive to add capital, negative to record a
+            withdrawal/adjustment.</span
+          >
+        </div>
+        <div class="field mb-4">
+          <label for="description">Description</label>
+          <input
+            type="text"
+            id="description"
+            name="description"
+            placeholder="e.g. Owner capital injection"
+          />
+        </div>
+        <div class="field mb-4">
+          <label for="password">Your password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            required
+          />
+          <span class="hint">Required to confirm this cash adjustment.</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          Update ledger
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% if pagination.pages > 1 %}
+<div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+  {% if pagination.has_prev %}
+  <a
+    href="{{ url_for('staff.transactions', page=pagination.prev_num) }}"
+    class="btn btn-outline btn-sm"
+    >← Prev</a
+  >
+  {% endif %} {% for page_num in range(1, pagination.pages + 1) %}
+  <a
+    href="{{ url_for('staff.transactions', page=page_num) }}"
+    class="btn btn-sm {{ 'btn-primary' if page_num == pagination.page else 'btn-outline' }}"
+    >{{ page_num }}</a
+  >
+  {% endfor %} {% if pagination.has_next %}
+  <a
+    href="{{ url_for('staff.transactions', page=pagination.next_num) }}"
+    class="btn btn-outline btn-sm"
+    >Next →</a
+  >
+  {% endif %}
+</div>
+{% endif %} {% endblock %}

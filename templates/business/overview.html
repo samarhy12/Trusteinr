@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Business day — Trustline Finance{% endblock %}
+{% block page_title %}Business day{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5">Open the day before agents and office staff can work; close it to lock in today's totals</div>{% endblock %}
+
+{% block content %}
+
+<div class="card card-pad w-full mb-6" x-data="{ confirmClose: false }">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <div class="text-ink-400 text-[11px] uppercase tracking-wide mb-1">{{ today.strftime("%A, %d %B %Y") }}</div>
+      {% if is_weekend_today %}
+      <div class="flex items-center gap-2">
+        <span class="badge badge-gray">Weekend</span>
+        <span class="text-ink-400 text-sm">Agents and office staff are locked out automatically today.</span>
+      </div>
+      {% elif is_open %}
+      <div class="flex items-center gap-2">
+        <span class="badge badge-green">Open</span>
+        <span class="text-ink-400 text-sm">
+          Opened {{ today_row.opened_at.strftime("%I:%M %p") }} by {{ today_row.opened_by.full_name if today_row.opened_by else "—" }}
+        </span>
+      </div>
+      {% else %}
+      <div class="flex items-center gap-2">
+        <span class="badge badge-red">Closed</span>
+        <span class="text-ink-400 text-sm">
+          {% if today_row and today_row.closed_at %}Closed {{ today_row.closed_at.strftime("%I:%M %p") }} by {{ today_row.closed_by.full_name if today_row.closed_by else "—" }}
+          {% else %}Not opened yet today.{% endif %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3">
+      {% if not is_open %}
+      <form method="POST" action="{{ url_for('business.open_day') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-gold">Open today</button>
+      </form>
+      {% else %}
+      <button type="button" class="btn btn-danger-outline" @click="confirmClose = true">Close today</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div x-show="confirmClose" x-cloak class="mt-5 pt-5 border-t border-line">
+    <p class="text-sm text-ink-900 font-medium mb-3">This will finalize today's totals and lock out agents and office staff. This can't be undone for today. Are you sure?</p>
+    <form method="POST" action="{{ url_for('business.close_day') }}" class="flex gap-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="confirm" value="yes">
+      <button type="submit" class="btn btn-danger-outline">Yes, close the day</button>
+      <button type="button" class="btn btn-outline" @click="confirmClose = false">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<div class="card w-full">
+  <div class="card-header"><h3>Recent business days</h3></div>
+  {% if history %}
+  <div class="overflow-x-auto">
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Status</th><th>Collected</th><th>Disbursed</th><th>Expenses</th><th>Net change</th><th></th></tr></thead>
+      <tbody>
+        {% for row in history %}
+        <tr>
+          <td>{{ row.date.strftime("%d %b %Y") }}</td>
+          <td>
+            {% if row.is_open %}<span class="badge badge-green">Open</span>
+            {% elif row.closed_at %}<span class="badge badge-gray">Closed</span>
+            {% else %}<span class="badge badge-red">Not opened</span>{% endif %}
+          </td>
+          <td class="num">{{ "GHS {:,.2f}".format(row.total_collected) if row.total_collected is not none else "—" }}</td>
+          <td class="num">{{ "GHS {:,.2f}".format(row.total_disbursed) if row.total_disbursed is not none else "—" }}</td>
+          <td class="num">{{ "GHS {:,.2f}".format(row.total_expenses) if row.total_expenses is not none else "—" }}</td>
+          <td class="num font-semibold">{{ "GHS {:,.2f}".format(row.net_change) if row.net_change is not none else "—" }}</td>
+          <td><a href="{{ url_for('business.day_detail', date_str=row.date.isoformat()) }}" class="btn btn-outline btn-sm">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><h4>No business days recorded yet</h4><p>Open today to begin.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

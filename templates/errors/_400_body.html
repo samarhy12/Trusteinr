@@ -1,0 +1,7 @@
+<div class="empty-state">
+  <h4>Your session expired or the form was submitted incorrectly</h4>
+  <p>This usually happens if a page was left open a long time before submitting. Please go back and try again.</p>
+  <a href="{{ url_for('dashboard.index') if current_user.is_authenticated else url_for('auth.login') }}" class="btn btn-primary mt-3">
+    {{ 'Back to dashboard' if current_user.is_authenticated else 'Go to sign in' }}
+  </a>
+</div>
