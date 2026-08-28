@@ -15,14 +15,15 @@
 <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
   <div class="card card-pad w-full min-w-0">
     <form method="POST" enctype="multipart/form-data" novalidate
-          x-data="{ guarantorType: '{{ form.get('guarantor_type', 'existing') }}', gPreview: null,
-                     termType: '{{ form.get('term_type', 'daily') }}', interestChoice: '{{ form.get('interest_choice', 'standard') }}' }">
+          x-data="{ guarantorType: '{{ form.get('guarantor_type', previous_guarantor_type or 'existing') }}', gPreview: null,
+                     termType: '{{ form.get('term_type', 'daily') }}', interestChoice: '{{ form.get('interest_choice', 'standard') }}' }"
+          x-init="initLoanForm()">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
         <div class="form-section-title">Loan details</div>
         <div class="field sm:col-span-2">
           <label for="customer_id">Customer</label>
-          <select id="customer_id" name="customer_id" required>
+          <select id="customer_id" name="customer_id" required onchange="loadPreviousGuarantor(this.value)">
             <option value="" disabled {{ 'selected' if not selected_customer_id }}>Select a customer</option>
             {% for c in customers %}
             <option value="{{ c.id }}" {{ 'selected' if selected_customer_id == c.id or form.get('customer_id')|string == c.id|string }}>{{ c.full_name }} &mdash; {{ c.customer_code }}</option>
@@ -34,7 +35,7 @@
         </div>
 
         <div class="field">
-          <label for="principal">Loan amount (GHS)</label>
+          <label for="principal">Loan amount (₵)</label>
           <input type="number" id="principal" name="principal" min="1" step="0.01" required
                  value="{{ form.get('principal','') }}" data-loan-principal>
         </div>
@@ -101,16 +102,21 @@
         <div class="field sm:col-span-2">
           <div class="grid grid-cols-2 gap-3">
             <label class="radio-card">
-              <input type="radio" name="guarantor_type" value="existing" x-model="guarantorType">
+              <input type="radio" name="guarantor_type" value="existing" x-model="guarantorType" {{ 'checked' if previous_guarantor_type == 'existing' }}>
               <div class="rc-title">Existing customer</div>
               <div class="rc-sub">Pick someone already registered</div>
             </label>
             <label class="radio-card">
-              <input type="radio" name="guarantor_type" value="new" x-model="guarantorType">
+              <input type="radio" name="guarantor_type" value="new" x-model="guarantorType" {{ 'checked' if previous_guarantor_type == 'new' }}>
               <div class="rc-title">New person</div>
               <div class="rc-sub">Not yet a customer</div>
             </label>
           </div>
+          {% if previous_guarantor %}
+          <div class="previous-guarantor-msg mt-2 text-sm text-ink-500">
+            <span class="font-medium">Previous guarantor:</span> {{ previous_guarantor.full_name }} (from last completed loan)
+          </div>
+          {% endif %}
         </div>
 
         <div class="field sm:col-span-2" x-show="guarantorType === 'existing'">
@@ -118,7 +124,7 @@
           <select id="guarantor_customer_id" name="guarantor_customer_id">
             <option value="" disabled selected>Select the guarantor</option>
             {% for c in customers %}
-            <option value="{{ c.id }}" {{ 'selected' if form.get('guarantor_customer_id')|string == c.id|string }}>{{ c.full_name }} &mdash; {{ c.customer_code }}</option>
+            <option value="{{ c.id }}" {{ 'selected' if form.get('guarantor_customer_id')|string == c.id|string or (previous_guarantor and previous_guarantor_type == 'existing' and previous_guarantor.id == c.id) }}>{{ c.full_name }} &mdash; {{ c.customer_code }}</option>
             {% endfor %}
           </select>
         </div>
@@ -151,68 +157,68 @@
 
             <div class="field">
               <label for="guarantor_full_name">Full name</label>
-              <input type="text" id="guarantor_full_name" name="guarantor_full_name" value="{{ form.get('guarantor_full_name','') }}">
+              <input type="text" id="guarantor_full_name" name="guarantor_full_name" value="{{ form.get('guarantor_full_name', previous_guarantor.full_name if previous_guarantor and previous_guarantor_type == 'new' else '') }}">
             </div>
             <div class="field">
               <label for="guarantor_gender">Gender</label>
               <select id="guarantor_gender" name="guarantor_gender">
                 <option value="" disabled selected>Select gender</option>
                 {% for g in genders %}
-                <option value="{{ g }}" {{ 'selected' if form.get('guarantor_gender') == g }}>{{ g }}</option>
+                <option value="{{ g }}" {{ 'selected' if form.get('guarantor_gender') == g or (previous_guarantor and previous_guarantor_type == 'new' and previous_guarantor.gender == g) }}>{{ g }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="field">
               <label for="guarantor_date_of_birth">Date of birth</label>
               <input type="date" id="guarantor_date_of_birth" name="guarantor_date_of_birth" max="{{ max_dob }}"
-                     value="{{ form.get('guarantor_date_of_birth','') }}">
+                     value="{{ form.get('guarantor_date_of_birth', previous_guarantor.date_of_birth.isoformat() if previous_guarantor and previous_guarantor_type == 'new' and previous_guarantor.date_of_birth else '') }}">
               <span class="hint">Guarantor must be at least 18 years old.</span>
             </div>
             <div class="field">
               <label for="guarantor_phone_number">Phone number</label>
               <input type="tel" id="guarantor_phone_number" name="guarantor_phone_number" placeholder="024xxxxxxx"
-                     value="{{ form.get('guarantor_phone_number','') }}">
+                     value="{{ form.get('guarantor_phone_number', previous_guarantor.phone_number if previous_guarantor and previous_guarantor_type == 'new' else '') }}">
             </div>
             <div class="field">
               <label for="guarantor_id_type">ID type</label>
               <select id="guarantor_id_type" name="guarantor_id_type">
                 <option value="" disabled selected>Select ID type</option>
                 {% for t in id_types %}
-                <option value="{{ t }}" {{ 'selected' if form.get('guarantor_id_type') == t }}>{{ t }}</option>
+                <option value="{{ t }}" {{ 'selected' if form.get('guarantor_id_type') == t or (previous_guarantor and previous_guarantor_type == 'new' and previous_guarantor.id_type == t) }}>{{ t }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="field">
               <label for="guarantor_id_number">ID number</label>
-              <input type="text" id="guarantor_id_number" name="guarantor_id_number" value="{{ form.get('guarantor_id_number','') }}">
+              <input type="text" id="guarantor_id_number" name="guarantor_id_number" value="{{ form.get('guarantor_id_number', previous_guarantor.id_number if previous_guarantor and previous_guarantor_type == 'new' else '') }}">
             </div>
             <div class="field sm:col-span-2">
               <label for="guarantor_residential_address">Residential address</label>
-              <textarea id="guarantor_residential_address" name="guarantor_residential_address">{{ form.get('guarantor_residential_address','') }}</textarea>
+              <textarea id="guarantor_residential_address" name="guarantor_residential_address">{{ form.get('guarantor_residential_address', previous_guarantor.residential_address if previous_guarantor and previous_guarantor_type == 'new' else '') }}</textarea>
             </div>
             <div class="field">
               <label for="guarantor_occupation">Occupation</label>
-              <input type="text" id="guarantor_occupation" name="guarantor_occupation" value="{{ form.get('guarantor_occupation','') }}">
+              <input type="text" id="guarantor_occupation" name="guarantor_occupation" value="{{ form.get('guarantor_occupation', previous_guarantor.occupation if previous_guarantor and previous_guarantor_type == 'new' else '') }}">
             </div>
             <div class="field">
               <label for="guarantor_employment_status">Employment status</label>
               <select id="guarantor_employment_status" name="guarantor_employment_status">
                 <option value="" disabled selected>Select status</option>
                 {% for s in employment_statuses %}
-                <option value="{{ s }}" {{ 'selected' if form.get('guarantor_employment_status') == s }}>{{ s }}</option>
+                <option value="{{ s }}" {{ 'selected' if form.get('guarantor_employment_status') == s or (previous_guarantor and previous_guarantor_type == 'new' and previous_guarantor.employment_status == s) }}>{{ s }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="field sm:col-span-2">
               <label for="guarantor_business_type">Type of business <span class="hint">(if self-employed / trading)</span></label>
-              <input type="text" id="guarantor_business_type" name="guarantor_business_type" value="{{ form.get('guarantor_business_type','') }}">
+              <input type="text" id="guarantor_business_type" name="guarantor_business_type" value="{{ form.get('guarantor_business_type', previous_guarantor.business_type if previous_guarantor and previous_guarantor_type == 'new' else '') }}">
             </div>
             <div class="field">
               <label for="guarantor_relationship_to_customer">Relationship to customer</label>
               <select id="guarantor_relationship_to_customer" name="guarantor_relationship_to_customer" required>
                 <option value="" disabled selected>Select relationship</option>
                 {% for r in relationships %}
-                <option value="{{ r }}" {{ 'selected' if form.get('guarantor_relationship_to_customer') == r }}>{{ r }}</option>
+                <option value="{{ r }}" {{ 'selected' if form.get('guarantor_relationship_to_customer') == r or (previous_guarantor and previous_guarantor_type == 'new' and previous_guarantor.relationship_to_customer == r) }}>{{ r }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -234,4 +240,65 @@
     </div>
   </div>
 </div>
+
+<script>
+function initLoanForm() {
+  // Load previous guarantor on page load if customer is pre-selected
+  const customerId = {{ selected_customer_id or 'null' }};
+  if (customerId) {
+    loadPreviousGuarantor(customerId);
+  }
+}
+
+function loadPreviousGuarantor(customerId) {
+  if (!customerId) return;
+  fetch('{{ url_for("loans.get_previous_guarantor", customer_id=0) }}'.replace('0', customerId))
+    .then(r => r.json())
+    .then(data => {
+      if (data.has_previous) {
+        // Update Alpine.js guarantorType
+        const form = document.querySelector('[x-data]');
+        if (form && form._x_dataStack) {
+          form._x_dataStack[0].guarantorType = data.guarantor_type;
+        }
+        
+        // Select the appropriate radio button
+        const radio = document.querySelector(`input[name="guarantor_type"][value="${data.guarantor_type}"]`);
+        if (radio) radio.checked = true;
+        
+        if (data.guarantor_type === 'existing' && data.guarantor) {
+          // Select the guarantor in the dropdown
+          const select = document.getElementById('guarantor_customer_id');
+          if (select) {
+            select.value = data.guarantor.id;
+          }
+        } else if (data.guarantor_type === 'new' && data.guarantor) {
+          // Fill in the new guarantor fields
+          const g = data.guarantor;
+          if (g.full_name) document.getElementById('guarantor_full_name').value = g.full_name;
+          if (g.gender) document.getElementById('guarantor_gender').value = g.gender;
+          if (g.date_of_birth) document.getElementById('guarantor_date_of_birth').value = g.date_of_birth;
+          if (g.phone_number) document.getElementById('guarantor_phone_number').value = g.phone_number;
+          if (g.id_type) document.getElementById('guarantor_id_type').value = g.id_type;
+          if (g.id_number) document.getElementById('guarantor_id_number').value = g.id_number;
+          if (g.residential_address) document.getElementById('guarantor_residential_address').value = g.residential_address;
+          if (g.occupation) document.getElementById('guarantor_occupation').value = g.occupation;
+          if (g.employment_status) document.getElementById('guarantor_employment_status').value = g.employment_status;
+          if (g.business_type) document.getElementById('guarantor_business_type').value = g.business_type;
+          if (g.relationship_to_customer) document.getElementById('guarantor_relationship_to_customer').value = g.relationship_to_customer;
+        }
+        
+        // Show previous guarantor message
+        let msgDiv = document.querySelector('.previous-guarantor-msg');
+        if (!msgDiv) {
+          msgDiv = document.createElement('div');
+          msgDiv.className = 'previous-guarantor-msg mt-2 text-sm text-ink-500';
+          document.querySelector('[name="guarantor_type"]').closest('.field').appendChild(msgDiv);
+        }
+        msgDiv.innerHTML = `<span class="font-medium">Previous guarantor:</span> ${data.guarantor.full_name} (from last completed loan)`;
+      }
+    })
+    .catch(err => console.error('Error loading previous guarantor:', err));
+}
+</script>
 {% endblock %}

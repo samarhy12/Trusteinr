@@ -8,20 +8,18 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
-def _normalize_database_uri(database_url):
+def _require_database_uri(database_url):
     if not database_url:
-        return f"sqlite:///{Path(BASE_DIR) / 'instance' / 'cashpoint.db'}"
+        raise RuntimeError(
+            "DATABASE_URL must be set in the environment or .env file to use your cPanel database. "
+            "Local SQLite fallback is disabled."
+        )
 
-    if database_url.startswith("sqlite"):
-        if database_url.startswith("sqlite:///"):
-            relative_path = database_url[len("sqlite:///"):]
-            if not relative_path:
-                return f"sqlite:///{Path(BASE_DIR) / 'instance' / 'cashpoint.db'}"
-
-            candidate_path = Path(relative_path)
-            if not candidate_path.is_absolute():
-                candidate_path = Path(BASE_DIR) / candidate_path
-            return f"sqlite:///{candidate_path}"
+    if database_url.startswith("sqlite") and os.environ.get("USE_SQLITE", "0") != "1":
+        raise RuntimeError(
+            "SQLite is disabled unless USE_SQLITE=1 is set for local testing. "
+            "Set DATABASE_URL to your cPanel MySQL/PostgreSQL connection string in production."
+        )
 
     return database_url
 
@@ -31,11 +29,9 @@ class Config:
     if not SECRET_KEY:
         raise RuntimeError("SECRET_KEY must be configured in the environment or .env file")
 
-    SQLALCHEMY_DATABASE_URI = _normalize_database_uri(os.environ.get("DATABASE_URL"))
+    SQLALCHEMY_DATABASE_URI = _require_database_uri(os.environ.get("DATABASE_URL"))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "connect_args": {"check_same_thread": False}
-    } if SQLALCHEMY_DATABASE_URI.startswith("sqlite") else {}
+    SQLALCHEMY_ENGINE_OPTIONS = {}
 
     # Business rules
     MONTHLY_INTEREST_RATE = 0.10   # standard/default interest rate per month — staff can override per loan

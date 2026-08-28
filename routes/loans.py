@@ -68,7 +68,7 @@ def _resolve_interest_rate(form, errors):
 @bp.route("/")
 @login_required
 def list_loans():
-    status_filter = request.args.get("status", "all")
+    status_filter = request.args.get("status", "active")
     page = request.args.get("page", 1, type=int)
     per_page = current_app.config["DEFAULT_PAGE_SIZE"]
     query = Loan.query
@@ -80,12 +80,36 @@ def list_loans():
         loans_all = [l for l in loans_all if l.status == status_filter and not (status_filter == "active" and l.is_overdue)]
 
     pagination = paginate_items(loans_all, page, per_page)
+    
+    # Calculate summary statistics
+    all_loans = Loan.query.all()
+    active_loans = [l for l in all_loans if l.status == "active"]
+    overdue_loans = [l for l in all_loans if l.is_overdue]
+    completed_loans = [l for l in all_loans if l.status == "completed"]
+    
+    total_outstanding = sum(l.outstanding_balance for l in active_loans)
+    total_overdue = sum(l.outstanding_balance for l in overdue_loans)
+    total_principal = sum(l.principal for l in active_loans)
+    total_repayable = sum(l.total_repayable for l in active_loans)
+    
+    stats = {
+        "total_loans": len(all_loans),
+        "active_loans": len(active_loans),
+        "overdue_loans": len(overdue_loans),
+        "completed_loans": len(completed_loans),
+        "total_outstanding": total_outstanding,
+        "total_overdue": total_overdue,
+        "total_principal": total_principal,
+        "total_repayable": total_repayable,
+    }
+    
     return render_template(
         "loans/list.html",
         loans=pagination.items,
         status_filter=status_filter,
         pagination=pagination,
         query_params={"status": status_filter} if status_filter != "all" else {},
+        stats=stats,
     )
 
 
@@ -236,6 +260,23 @@ def new_loan():
     relationships = ["Spouse", "Parent", "Sibling", "Child", "Friend", "Colleague", "Relative", "Other"]
     standard_rate_pct = current_app.config["MONTHLY_INTEREST_RATE"] * 100
 
+    # Find previous guarantor for repeat customers
+    previous_guarantor = None
+    previous_guarantor_type = None
+    if customer_id:
+        customer = Customer.query.get(customer_id)
+        if customer:
+            # Find the most recent completed loan for this customer
+            previous_loan = Loan.query.filter_by(customer_id=customer.id, status="completed") \
+                .order_by(Loan.created_at.desc()).first()
+            if previous_loan:
+                if previous_loan.guarantor_customer_id:
+                    previous_guarantor = Customer.query.get(previous_loan.guarantor_customer_id)
+                    previous_guarantor_type = "existing"
+                elif previous_loan.guarantor_id:
+                    previous_guarantor = Guarantor.query.get(previous_loan.guarantor_id)
+                    previous_guarantor_type = "new"
+
     if request.method == "POST":
         if not is_business_day_open():
             flash("The business day is closed. Open the day before disbursing loans.", "error")
@@ -261,6 +302,17 @@ def new_loan():
                     f"{customer.full_name} already has an active loan "
                     f"({existing_active.loan_code}) and cannot be given another until it is completed."
                 )
+            
+            # Recalculate previous guarantor for form validation error case
+            previous_loan = Loan.query.filter_by(customer_id=customer.id, status="completed") \
+                .order_by(Loan.created_at.desc()).first()
+            if previous_loan:
+                if previous_loan.guarantor_customer_id:
+                    previous_guarantor = Customer.query.get(previous_loan.guarantor_customer_id)
+                    previous_guarantor_type = "existing"
+                elif previous_loan.guarantor_id:
+                    previous_guarantor = Guarantor.query.get(previous_loan.guarantor_id)
+                    previous_guarantor_type = "new"
 
         try:
             principal = float(principal_raw)
@@ -348,7 +400,8 @@ def new_loan():
                                     selected_customer_id=cid, today=date.today().isoformat(),
                                     id_types=id_types, employment_statuses=employment_statuses, genders=genders,
                                     relationships=relationships,
-                                    max_dob=max_allowed_dob().isoformat(), standard_rate_pct=standard_rate_pct)
+                                    max_dob=max_allowed_dob().isoformat(), standard_rate_pct=standard_rate_pct,
+                                    previous_guarantor=previous_guarantor, previous_guarantor_type=previous_guarantor_type)
 
         end_date, total_interest, total_repayable, installment, num_installments = Loan.compute_schedule(
             principal, rate, term_type, duration_value, start_date
@@ -405,7 +458,58 @@ def new_loan():
                             selected_customer_id=customer_id, today=date.today().isoformat(),
                             id_types=id_types, employment_statuses=employment_statuses, genders=genders,
                             relationships=relationships,
-                            max_dob=max_allowed_dob().isoformat(), standard_rate_pct=standard_rate_pct)
+                            max_dob=max_allowed_dob().isoformat(), standard_rate_pct=standard_rate_pct,
+                            previous_guarantor=previous_guarantor, previous_guarantor_type=previous_guarantor_type)
+
+
+@bp.route("/previous-guarantor/<int:customer_id>")
+@login_required
+def get_previous_guarantor(customer_id):
+    """AJAX endpoint: Get previous guarantor for a customer with completed loans."""
+    customer = Customer.query.get_or_404(customer_id)
+    
+    # Find the most recent completed loan for this customer
+    previous_loan = Loan.query.filter_by(customer_id=customer.id, status="completed") \
+        .order_by(Loan.created_at.desc()).first()
+    
+    if not previous_loan:
+        return jsonify({"has_previous": False})
+    
+    guarantor_data = None
+    guarantor_type = None
+    
+    if previous_loan.guarantor_customer_id:
+        guarantor = Customer.query.get(previous_loan.guarantor_customer_id)
+        if guarantor:
+            guarantor_data = {
+                "id": guarantor.id,
+                "full_name": guarantor.full_name,
+                "customer_code": guarantor.customer_code
+            }
+            guarantor_type = "existing"
+    elif previous_loan.guarantor_id:
+        guarantor = Guarantor.query.get(previous_loan.guarantor_id)
+        if guarantor:
+            guarantor_data = {
+                "full_name": guarantor.full_name,
+                "gender": guarantor.gender,
+                "date_of_birth": guarantor.date_of_birth.isoformat() if guarantor.date_of_birth else None,
+                "phone_number": guarantor.phone_number,
+                "id_type": guarantor.id_type,
+                "id_number": guarantor.id_number,
+                "residential_address": guarantor.residential_address,
+                "occupation": guarantor.occupation,
+                "employment_status": guarantor.employment_status,
+                "business_type": guarantor.business_type,
+                "relationship_to_customer": guarantor.relationship_to_customer
+            }
+            guarantor_type = "new"
+    
+    return jsonify({
+        "has_previous": True,
+        "guarantor_type": guarantor_type,
+        "guarantor": guarantor_data
+    })
 
 
 @bp.route("/preview")

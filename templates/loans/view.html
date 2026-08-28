@@ -16,7 +16,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="stat-card">
     <div class="stat-label">Principal</div>
-    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.principal) }}</div>
+    <div class="stat-value">₵{{ "{:,.2f}".format(loan.principal) }}</div>
     <div class="stat-foot">
       {{ "%.1f"|format(loan.interest_rate * 100) }}% interest &times; {{ loan.duration_value }}
       {{ "month" if loan.term_type == "monthly" else "week" if loan.term_type == "weekly" else "day" }}{{ "s" if loan.duration_value != 1 }}
@@ -24,17 +24,17 @@
   </div>
   <div class="stat-card">
     <div class="stat-label">Total repayable</div>
-    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.total_repayable) }}</div>
-    <div class="stat-foot">Interest: GHS {{ "{:,.2f}".format(loan.total_interest) }}</div>
+    <div class="stat-value">₵{{ "{:,.2f}".format(loan.total_repayable) }}</div>
+    <div class="stat-foot">Interest: ₵{{ "{:,.2f}".format(loan.total_interest) }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Amount paid</div>
-    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.amount_paid) }}</div>
+    <div class="stat-value">₵{{ "{:,.2f}".format(loan.amount_paid) }}</div>
     <div class="stat-foot">{{ loan.progress_percent }}% of repayable</div>
   </div>
   <div class="stat-card {{ 'warn' if loan.is_overdue }}">
     <div class="stat-label">Outstanding</div>
-    <div class="stat-value">GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</div>
+    <div class="stat-value">₵{{ "{:,.2f}".format(loan.outstanding_balance) }}</div>
     <div class="stat-foot">Matures {{ loan.end_date.strftime("%d %b %Y") }}</div>
   </div>
 </div>
@@ -45,7 +45,7 @@
       <strong class="text-sm">Repayment progress</strong>
       <div class="text-ink-400 text-xs mt-0.5">
         {{ loan.term_type|capitalize }} term &middot; {{ loan.number_of_installments }} installments of
-        GHS {{ "{:,.2f}".format(loan.installment_amount) }} each
+        ₵{{ "{:,.2f}".format(loan.installment_amount) }} each
       </div>
     </div>
     {% if loan.is_overdue %}<span class="badge badge-red">Overdue</span>
@@ -91,7 +91,7 @@
           <tr>
             <td>{{ r.transaction_id }}</td>
             <td>{{ r.date.strftime("%d %b %Y") }}</td>
-            <td class="num">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+            <td class="num">₵{{ "{:,.2f}".format(r.amount) }}</td>
             <td><a class="row-link" href="{{ url_for('agents.agent_detail', agent_id=r.agent_id) }}">{{ r.agent.full_name if r.agent else "—" }}</a></td>
             <td>{{ r.recorded_by.full_name if r.recorded_by else "—" }}</td>
             <td class="text-ink-400">{{ r.note or "—" }}</td>
@@ -129,9 +129,9 @@
         {% endif %}
       </div>
       <div class="field mb-4">
-        <label for="amount">Amount (GHS)</label>
+        <label for="amount">Amount (₵)</label>
         <input type="number" id="amount" name="amount" min="0.01" step="0.01" max="{{ loan.outstanding_balance }}" required>
-        <span class="hint">Outstanding balance: GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</span>
+        <span class="hint">Outstanding balance: ₵{{ "{:,.2f}".format(loan.outstanding_balance) }}</span>
       </div>
       <div class="field mb-4">
         <label for="date">Payment date</label>

@@ -33,9 +33,9 @@
             {% for loan in loans %}
             <tr>
               <td><a class="row-link" href="{{ url_for('loans.view_loan', loan_id=loan.id) }}">{{ loan.loan_code }}</a></td>
-              <td class="num">GHS {{ "{:,.2f}".format(loan.principal) }}</td>
+              <td class="num">₵{{ "{:,.2f}".format(loan.principal) }}</td>
               <td class="capitalize">{{ loan.term_type }}</td>
-              <td class="num">GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
+              <td class="num">₵{{ "{:,.2f}".format(loan.outstanding_balance) }}</td>
               <td>
                 {% if loan.is_overdue %}<span class="badge badge-red">Overdue</span>
                 {% elif loan.status == 'completed' %}<span class="badge badge-green">Completed</span>
@@ -100,7 +100,7 @@
       <h3 class="mb-3.5">Lending summary</h3>
       <div class="flex justify-between items-center mb-4">
         <span class="text-ink-400 text-sm">Total borrowed</span>
-        <span class="ledger-figure">GHS {{ "{:,.2f}".format(customer.total_borrowed) }}</span>
+        <span class="ledger-figure">₵{{ "{:,.2f}".format(customer.total_borrowed) }}</span>
       </div>
       <div class="flex justify-between items-center">
         <span class="text-ink-400 text-sm">Active loans</span>

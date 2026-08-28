@@ -64,14 +64,14 @@ endblock %} {% block page_title %}Dashboard{% endblock %} {% block page_sub %}
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="stat-card">
     <div class="stat-label">Cash in hand</div>
-    <div class="stat-value">GHS {{ "{:,.2f}".format(cash_in_hand) }}</div>
+    <div class="stat-value">₵{{ "{:,.2f}".format(cash_in_hand) }}</div>
     <div class="stat-foot">Collected &minus; disbursed + capital</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Active loans</div>
     <div class="stat-value">{{ active_loans_count }}</div>
     <div class="stat-foot">
-      GHS {{ "{:,.2f}".format(outstanding_total) }} outstanding
+      ₵{{ "{:,.2f}".format(outstanding_total) }} outstanding
     </div>
   </div>
   <div class="stat-card {{ 'warn' if overdue_loans }}">
@@ -205,19 +205,19 @@ endblock %} {% block page_title %}Dashboard{% endblock %} {% block page_sub %}
       <div class="flex justify-between items-center">
         <span class="text-ink-400 text-sm">Disbursed</span>
         <span class="ledger-figure"
-          >GHS {{ "{:,.2f}".format(disbursed_this_week) }}</span
+          >₵{{ "{:,.2f}".format(disbursed_this_week) }}</span
         >
       </div>
       <div class="flex justify-between items-center">
         <span class="text-ink-400 text-sm">Collected</span>
         <span class="ledger-figure"
-          >GHS {{ "{:,.2f}".format(collected_this_week) }}</span
+          >₵{{ "{:,.2f}".format(collected_this_week) }}</span
         >
       </div>
       <div class="flex justify-between items-center">
         <span class="text-ink-400 text-sm">Expenses</span>
         <span class="ledger-figure"
-          >GHS {{ "{:,.2f}".format(expenses_this_week) }}</span
+          >₵{{ "{:,.2f}".format(expenses_this_week) }}</span
         >
       </div>
     </div>
@@ -263,7 +263,7 @@ endblock %} {% block page_title %}Dashboard{% endblock %} {% block page_sub %}
           r.transaction_id }}
         </div>
       </div>
-      <div class="tx-amount in">GHS {{ "{:,.2f}".format(r.amount) }}</div>
+      <div class="tx-amount in">₵{{ "{:,.2f}".format(r.amount) }}</div>
     </div>
     {% endfor %}
   </div>

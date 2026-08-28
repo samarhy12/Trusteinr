@@ -8,8 +8,7 @@
   class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"
 >
   <div class="flex gap-2 flex-wrap">
-    {% for key, label in [('all','All'), ('active','Active'),
-    ('overdue','Overdue'), ('completed','Completed')] %}
+    {% for key, label in [('active','Active'), ('overdue','Overdue'), ('completed','Completed'), ('all','All')] %}
     <a
       href="{{ url_for('loans.list_loans', status=key) }}"
       class="btn btn-sm {{ 'btn-primary' if status_filter == key else 'btn-outline' }}"
@@ -61,7 +60,7 @@
               >{{ loan.customer.full_name }}</a
             >
           </td>
-          <td class="num">GHS {{ "{:,.2f}".format(loan.principal) }}</td>
+          <td class="num">₵{{ "{:,.2f}".format(loan.principal) }}</td>
           <td class="capitalize">
             {{ loan.term_type }}
             <span class="text-ink-400 text-xs"
@@ -70,7 +69,7 @@
           </td>
           <td>{{ loan.end_date.strftime("%d %b %Y") }}</td>
           <td class="num">
-            GHS {{ "{:,.2f}".format(loan.outstanding_balance) }}
+            ₵{{ "{:,.2f}".format(loan.outstanding_balance) }}
           </td>
           <td>
             {% if loan.is_overdue %}<span class="badge badge-red">Overdue</span>
@@ -122,4 +121,79 @@
   >
   {% endif %}
 </div>
-{% endif %} {% endblock %}
+{% endif %}
+
+<div class="mt-6">
+  <h3 class="text-lg font-semibold text-ink-900 mb-4">Portfolio Overview</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="card card-pad border-l-4 border-l-blue-500">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Total Loans</div>
+          <div class="text-3xl font-bold text-ink-900 mt-2">{{ stats.total_loans }}</div>
+          <div class="text-sm text-ink-500 mt-1">
+            <span class="text-blue-600 font-medium">{{ stats.active_loans }}</span> active · 
+            <span class="text-green-600 font-medium">{{ stats.completed_loans }}</span> completed
+          </div>
+        </div>
+        <div class="bg-blue-50 p-2 rounded-lg">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card card-pad border-l-4 border-l-emerald-500">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Total Outstanding</div>
+          <div class="text-3xl font-bold text-ink-900 mt-2">₵{{ "{:,.2f}".format(stats.total_outstanding) }}</div>
+          <div class="text-sm text-ink-500 mt-1">
+            From <span class="text-emerald-600 font-medium">{{ stats.active_loans }}</span> active loans
+          </div>
+        </div>
+        <div class="bg-emerald-50 p-2 rounded-lg">
+          <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card card-pad border-l-4 border-l-red-500">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Total Overdue</div>
+          <div class="text-3xl font-bold text-red-600 mt-2">₵{{ "{:,.2f}".format(stats.total_overdue) }}</div>
+          <div class="text-sm text-ink-500 mt-1">
+            <span class="text-red-600 font-medium">{{ stats.overdue_loans }}</span> overdue loans
+          </div>
+        </div>
+        <div class="bg-red-50 p-2 rounded-lg">
+          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card card-pad border-l-4 border-l-purple-500">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Principal Out</div>
+          <div class="text-3xl font-bold text-ink-900 mt-2">₵{{ "{:,.2f}".format(stats.total_principal) }}</div>
+          <div class="text-sm text-ink-500 mt-1">
+            Repayable: <span class="text-purple-600 font-medium">₵{{ "{:,.2f}".format(stats.total_repayable) }}</span>
+          </div>
+        </div>
+        <div class="bg-purple-50 p-2 rounded-lg">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
