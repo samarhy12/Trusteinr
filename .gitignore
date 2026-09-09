@@ -34,3 +34,5 @@ Thumbs.db
 migrations/
 
 seed.py
+node_modules/
+.devin

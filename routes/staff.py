@@ -102,6 +102,18 @@ def toggle_agent_edit_permission(staff_id):
     return redirect(url_for("staff.list_staff"))
 
 
+@bp.route("/<int:staff_id>/toggle-reverse-permission", methods=["POST"])
+@login_required
+@admin_required
+def toggle_reverse_permission(staff_id):
+    member = Staff.query.filter_by(id=staff_id, role="admin").first_or_404()
+    member.reverse_loans_permission = not member.reverse_loans_permission
+    db.session.commit()
+    state = "granted" if member.reverse_loans_permission else "revoked"
+    flash(f"Loan reversal permission {state} for {member.full_name}.", "success")
+    return redirect(url_for("staff.list_staff"))
+
+
 @bp.route("/<int:staff_id>/reset-password", methods=["POST"])
 @login_required
 @admin_required

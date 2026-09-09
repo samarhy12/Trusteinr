@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Reverse Loan {{ loan.loan_code }} — Trustline Finance{% endblock %}
+{% block page_title %}Reverse Loan {{ loan.loan_code }}{% endblock %}
+{% block page_sub %}<div class="text-xs text-ink-400 mt-0.5"><a class="row-link" href="{{ url_for('customers.view_customer', customer_id=loan.customer_id) }}">{{ loan.customer.full_name }}</a> &middot; ₵{{ "{:,.2f}".format(loan.principal) }}</div>{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb no-print">
+  <a href="{{ url_for('dashboard.index') }}">Dashboard</a><span class="sep">/</span>
+  <a href="{{ url_for('loans.list_loans') }}">Loans</a><span class="sep">/</span>
+  <a href="{{ url_for('loans.view_loan', loan_id=loan.id) }}">{{ loan.loan_code }}</a><span class="sep">/</span>
+  <span class="current">Reverse</span>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-pad mb-6 w-full max-w-2xl mx-auto">
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <h3 class="text-red-800 font-semibold mb-2">⚠️ Warning: This action cannot be undone</h3>
+    <p class="text-red-700 text-sm">You are about to reverse loan {{ loan.loan_code }}. This will:</p>
+    <ul class="text-red-700 text-sm mt-2 list-disc list-inside space-y-1">
+      <li>Cancel the loan and change its status to "cancelled"</li>
+      <li>Restore ₵{{ "{:,.2f}".format(loan.principal) }} to the cash ledger</li>
+      <li>Remove the disbursement transaction from records</li>
+      <li>Create a permanent audit log of this reversal</li>
+    </ul>
+  </div>
+
+  <div class="space-y-4 mb-6">
+    <div class="flex justify-between items-center py-2 border-b border-line">
+      <span class="text-ink-400 text-sm">Loan Code</span>
+      <span class="font-semibold">{{ loan.loan_code }}</span>
+    </div>
+    <div class="flex justify-between items-center py-2 border-b border-line">
+      <span class="text-ink-400 text-sm">Customer</span>
+      <span class="font-semibold">{{ loan.customer.full_name }}</span>
+    </div>
+    <div class="flex justify-between items-center py-2 border-b border-line">
+      <span class="text-ink-400 text-sm">Principal Amount</span>
+      <span class="font-semibold text-red-600">₵{{ "{:,.2f}".format(loan.principal) }}</span>
+    </div>
+    <div class="flex justify-between items-center py-2 border-b border-line">
+      <span class="text-ink-400 text-sm">Disbursed</span>
+      <span class="font-semibold">{{ loan.start_date.strftime("%d %b %Y") }}</span>
+    </div>
+    <div class="flex justify-between items-center py-2 border-b border-line">
+      <span class="text-ink-400 text-sm">Created</span>
+      <span class="font-semibold">{{ loan.created_at.strftime("%d %b %Y at %H:%M") if loan.created_at else "—" }}</span>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('loans.reverse_loan', loan_id=loan.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="field mb-4">
+      <label for="password">Confirm your password</label>
+      <input type="password" id="password" name="password" required>
+      <span class="hint">Enter your password to confirm this action</span>
+    </div>
+
+    <div class="field mb-4">
+      <label for="reason">Reason for reversal</label>
+      <textarea id="reason" name="reason" rows="3" required minlength="10" placeholder="Explain why this loan needs to be reversed...">{{ reason or '' }}</textarea>
+      <span class="hint">Provide a detailed reason (at least 10 characters) for audit purposes</span>
+    </div>
+
+    <div class="field mb-6">
+      <label for="confirm">Type <strong>REVERSE</strong> to confirm</label>
+      <input type="text" id="confirm" name="confirm" required>
+      <span class="hint">This is your final confirmation - type exactly "REVERSE"</span>
+    </div>
+
+    <div class="flex gap-3">
+      <a href="{{ url_for('loans.view_loan', loan_id=loan.id) }}" class="btn btn-outline flex-1">Cancel</a>
+      <button type="submit" class="btn btn-red flex-1">Reverse Loan</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

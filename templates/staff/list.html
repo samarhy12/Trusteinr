@@ -21,6 +21,7 @@ endblock %} {% block page_title %}Staff accounts{% endblock %} {% block page_sub
           <th>Role</th>
           <th>Status</th>
           <th>Edit customers?</th>
+          <th>Reverse loans?</th>
           <th>Last sign-in</th>
           <th></th>
         </tr>
@@ -68,6 +69,28 @@ endblock %} {% block page_title %}Staff accounts{% endblock %} {% block page_sub
                 class="btn btn-sm {{ 'btn-primary' if m.agent_edit_permission else 'btn-outline' }}"
               >
                 {{ 'Allowed' if m.agent_edit_permission else 'Not allowed' }}
+              </button>
+            </form>
+            {% else %}
+            <span class="text-ink-400 text-xs">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.role == 'admin' %}
+            <form
+              method="POST"
+              action="{{ url_for('staff.toggle_reverse_permission', staff_id=m.id) }}"
+            >
+              <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+              />
+              <button
+                type="submit"
+                class="btn btn-sm {{ 'btn-primary' if m.reverse_loans_permission else 'btn-outline' }}"
+              >
+                {{ 'Allowed' if m.reverse_loans_permission else 'Not allowed' }}
               </button>
             </form>
             {% else %}

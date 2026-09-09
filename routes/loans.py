@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 
 from extensions import db
 from models import (
-    Customer, Loan, Repayment, CashTransaction, Guarantor, Staff, Notification,
+    Customer, Loan, Repayment, CashTransaction, Guarantor, Staff, Notification, LoanReversalLog,
     subtract_years, is_business_day_open, generate_transaction_id,
 )
 from image_utils import validate_and_save_image
@@ -31,6 +31,15 @@ def can_record_repayments_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not current_user.can_record_repayments:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def can_reverse_loans_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user.can_reverse_loans:
             abort(403)
         return view(*args, **kwargs)
     return wrapped
@@ -78,6 +87,8 @@ def list_loans():
         loans_all = [l for l in loans_all if l.is_overdue]
     elif status_filter in ("active", "completed"):
         loans_all = [l for l in loans_all if l.status == status_filter and not (status_filter == "active" and l.is_overdue)]
+    elif status_filter == "cancelled":
+        loans_all = [l for l in loans_all if l.status == "cancelled"]
 
     pagination = paginate_items(loans_all, page, per_page)
     
@@ -86,6 +97,7 @@ def list_loans():
     active_loans = [l for l in all_loans if l.status == "active"]
     overdue_loans = [l for l in all_loans if l.is_overdue]
     completed_loans = [l for l in all_loans if l.status == "completed"]
+    cancelled_loans = [l for l in all_loans if l.status == "cancelled"]
     
     total_outstanding = sum(l.outstanding_balance for l in active_loans)
     total_overdue = sum(l.outstanding_balance for l in overdue_loans)
@@ -97,6 +109,7 @@ def list_loans():
         "active_loans": len(active_loans),
         "overdue_loans": len(overdue_loans),
         "completed_loans": len(completed_loans),
+        "cancelled_loans": len(cancelled_loans),
         "total_outstanding": total_outstanding,
         "total_overdue": total_overdue,
         "total_principal": total_principal,
@@ -693,3 +706,106 @@ def record_repayment(loan_id):
 
     flash(f"Repayment of GHS {amount:,.2f} recorded for {agent.full_name}.", "success")
     return redirect(url_for("loans.repayment_receipt", loan_id=loan.id, repayment_id=repayment.id))
+
+
+@bp.route("/<int:loan_id>/reverse", methods=["GET", "POST"])
+@login_required
+@can_reverse_loans_required
+def reverse_loan(loan_id):
+    """Reverse a mistakenly disbursed loan with multiple safeguards."""
+    loan = Loan.query.get_or_404(loan_id)
+
+    # Multi-layer safeguards
+    errors = []
+
+    # 1. Check if loan can be reversed (no repayments allowed)
+    if not loan.can_be_reversed:
+        if loan.status != "active":
+            errors.append(f"Cannot reverse loan with status '{loan.status}'. Only active loans can be reversed.")
+        elif loan.amount_paid > 0:
+            errors.append(f"Cannot reverse loan with repayments. This loan has GHS {loan.amount_paid:,.2f} already paid.")
+
+    # 2. Check if business day is open
+    if not is_business_day_open():
+        errors.append("The business day is closed. Loan reversals can only be performed when the business day is open.")
+
+    if errors:
+        for e in errors:
+            flash(e, "error")
+        return redirect(url_for("loans.view_loan", loan_id=loan.id))
+
+    if request.method == "POST":
+        # 3. Password re-authentication
+        password = request.form.get("password", "")
+        if not current_user.check_password(password):
+            flash("Incorrect password. Please re-enter your password to confirm the reversal.", "error")
+            return render_template("loans/reverse_confirm.html", loan=loan)
+
+        # 4. Explicit reason requirement
+        reason = request.form.get("reason", "").strip()
+        if not reason or len(reason) < 10:
+            flash("Please provide a detailed reason for the reversal (at least 10 characters).", "error")
+            return render_template("loans/reverse_confirm.html", loan=loan, reason=reason)
+
+        # 5. Final confirmation
+        confirm = request.form.get("confirm")
+        if confirm != "REVERSE":
+            flash("Please type 'REVERSE' to confirm this action.", "error")
+            return render_template("loans/reverse_confirm.html", loan=loan, reason=reason)
+
+        # Perform the reversal
+        try:
+            # Find and delete the disbursement cash transaction
+            disbursement_tx = CashTransaction.query.filter_by(
+                loan_id=loan.id,
+                tx_type="disbursement"
+            ).first()
+
+            if disbursement_tx:
+                db.session.delete(disbursement_tx)
+
+            # Create reversal cash transaction to restore the cash
+            reversal_tx = CashTransaction(
+                tx_type="reversal",
+                amount=abs(loan.principal),  # Positive amount to restore cash
+                description=f"Loan reversal: {loan.loan_code} - {loan.customer.full_name}",
+                loan_id=loan.id,
+                customer_id=loan.customer_id,
+                staff_id=current_user.id,
+                date=date.today(),
+            )
+            db.session.add(reversal_tx)
+
+            # Update loan status and reversal tracking
+            loan.status = "cancelled"
+            loan.reversed_at = datetime.now()
+            loan.reversed_by_id = current_user.id
+            loan.reversal_reason = reason
+
+            # Create audit log
+            ip_address = request.remote_addr or None
+
+            reversal_log = LoanReversalLog(
+                loan_id=loan.id,
+                loan_code=loan.loan_code,
+                customer_id=loan.customer_id,
+                customer_name=loan.customer.full_name,
+                principal_amount=loan.principal,
+                reversed_by_id=current_user.id,
+                reversed_by_name=current_user.full_name,
+                reason=reason,
+                ip_address=ip_address,
+            )
+            db.session.add(reversal_log)
+
+            db.session.commit()
+
+            flash(f"Loan {loan.loan_code} has been successfully reversed. Cash ledger has been restored.", "success")
+            return redirect(url_for("loans.view_loan", loan_id=loan.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error reversing loan: {str(e)}", "error")
+            return redirect(url_for("loans.view_loan", loan_id=loan.id))
+
+    return render_template("loans/reverse_confirm.html", loan=loan)

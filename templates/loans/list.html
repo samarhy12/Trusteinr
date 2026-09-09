@@ -8,7 +8,7 @@
   class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"
 >
   <div class="flex gap-2 flex-wrap">
-    {% for key, label in [('active','Active'), ('overdue','Overdue'), ('completed','Completed'), ('all','All')] %}
+    {% for key, label in [('active','Active'), ('overdue','Overdue'), ('completed','Completed'), ('cancelled','Cancelled'), ('all','All')] %}
     <a
       href="{{ url_for('loans.list_loans', status=key) }}"
       class="btn btn-sm {{ 'btn-primary' if status_filter == key else 'btn-outline' }}"
@@ -76,6 +76,9 @@
             {% elif loan.status == 'completed' %}<span class="badge badge-green"
               >Completed</span
             >
+            {% elif loan.status == 'cancelled' %}<span class="badge badge-gray"
+              >Cancelled</span
+            >
             {% else %}<span class="badge badge-navy">Active</span>{% endif %}
           </td>
         </tr>
@@ -131,9 +134,19 @@
         <div>
           <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Total Loans</div>
           <div class="text-3xl font-bold text-ink-900 mt-2">{{ stats.total_loans }}</div>
-          <div class="text-sm text-ink-500 mt-1">
-            <span class="text-blue-600 font-medium">{{ stats.active_loans }}</span> active · 
-            <span class="text-green-600 font-medium">{{ stats.completed_loans }}</span> completed
+          <div class="flex items-center gap-3 mt-2 text-xs">
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span class="text-ink-600">{{ stats.active_loans }} active</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-green-500"></span>
+              <span class="text-ink-600">{{ stats.completed_loans }} completed</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+              <span class="text-ink-600">{{ stats.cancelled_loans }} cancelled</span>
+            </div>
           </div>
         </div>
         <div class="bg-blue-50 p-2 rounded-lg">
@@ -143,13 +156,13 @@
         </div>
       </div>
     </div>
-    
+
     <div class="card card-pad border-l-4 border-l-emerald-500">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Total Outstanding</div>
           <div class="text-3xl font-bold text-ink-900 mt-2">₵{{ "{:,.2f}".format(stats.total_outstanding) }}</div>
-          <div class="text-sm text-ink-500 mt-1">
+          <div class="text-sm text-ink-500 mt-2">
             From <span class="text-emerald-600 font-medium">{{ stats.active_loans }}</span> active loans
           </div>
         </div>
@@ -160,13 +173,13 @@
         </div>
       </div>
     </div>
-    
+
     <div class="card card-pad border-l-4 border-l-red-500">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Total Overdue</div>
           <div class="text-3xl font-bold text-red-600 mt-2">₵{{ "{:,.2f}".format(stats.total_overdue) }}</div>
-          <div class="text-sm text-ink-500 mt-1">
+          <div class="text-sm text-ink-500 mt-2">
             <span class="text-red-600 font-medium">{{ stats.overdue_loans }}</span> overdue loans
           </div>
         </div>
@@ -177,13 +190,13 @@
         </div>
       </div>
     </div>
-    
+
     <div class="card card-pad border-l-4 border-l-purple-500">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-xs text-ink-400 uppercase tracking-wide font-medium">Principal Out</div>
           <div class="text-3xl font-bold text-ink-900 mt-2">₵{{ "{:,.2f}".format(stats.total_principal) }}</div>
-          <div class="text-sm text-ink-500 mt-1">
+          <div class="text-sm text-ink-500 mt-2">
             Repayable: <span class="text-purple-600 font-medium">₵{{ "{:,.2f}".format(stats.total_repayable) }}</span>
           </div>
         </div>

@@ -38,6 +38,7 @@
   .btn-gold { @apply bg-gold-500 text-white hover:bg-gold-400; }
   .btn-outline { @apply bg-transparent border-line text-ink-900 hover:border-navy-600; }
   .btn-danger-outline { @apply bg-transparent border-red-600 text-red-600 hover:bg-red-50; }
+  .btn-red { @apply bg-red-600 text-white hover:bg-red-700; }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
   .btn-block { @apply w-full; }
   .btn[disabled] { @apply opacity-50 cursor-not-allowed; }

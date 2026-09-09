@@ -30,6 +30,9 @@ class Staff(UserMixin, db.Model):
     # Admin-controlled: allows a specific agent to edit customer records they wouldn't otherwise touch.
     agent_edit_permission = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Admin-controlled: allows admin to reverse loans (extra safeguard beyond admin role)
+    reverse_loans_permission = db.Column(db.Boolean, default=False, nullable=False)
+
     # Login security
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)
@@ -115,6 +118,10 @@ class Staff(UserMixin, db.Model):
     @property
     def can_manage_business_day(self):
         return self.role == "admin"
+
+    @property
+    def can_reverse_loans(self):
+        return self.role == "admin" and self.reverse_loans_permission
 
     # flask-login requires an active account to allow login
     @property
@@ -253,7 +260,7 @@ class Loan(db.Model):
     installment_amount = db.Column(db.Float, nullable=False)
     number_of_installments = db.Column(db.Integer, nullable=False)
 
-    status = db.Column(db.String(20), nullable=False, default="active")  # active | completed | defaulted
+    status = db.Column(db.String(20), nullable=False, default="active")  # active | completed | defaulted | cancelled
 
     # Guarantor is EITHER an existing customer OR a freshly-entered person — exactly one should be set.
     guarantor_customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
@@ -262,8 +269,14 @@ class Loan(db.Model):
     created_by_id = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
 
+    # Reversal tracking
+    reversed_at = db.Column(db.DateTime, nullable=True)
+    reversed_by_id = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    reversal_reason = db.Column(db.Text, nullable=True)
+
     guarantor_customer = db.relationship("Customer", foreign_keys=[guarantor_customer_id])
     guarantor = db.relationship("Guarantor", foreign_keys=[guarantor_id])
+    reversed_by = db.relationship("Staff", foreign_keys=[reversed_by_id])
 
     repayments = db.relationship("Repayment", backref="loan", lazy="dynamic",
                                   cascade="all, delete-orphan", order_by="Repayment.date")
@@ -383,6 +396,10 @@ class Loan(db.Model):
         return abs(days_until) if days_until is not None and days_until < 0 else 0
 
     def refresh_status(self):
+        # Don't update status if loan is cancelled
+        if self.status == "cancelled":
+            return
+
         if self.outstanding_balance <= 0:
             self.status = "completed"
         elif self.is_overdue:
@@ -390,6 +407,18 @@ class Loan(db.Model):
         else:
             if self.status == "completed":
                 self.status = "active"
+
+    @property
+    def can_be_reversed(self):
+        """Check if loan can be reversed (no repayments required)."""
+        if self.status != "active":
+            return False
+
+        # Check if loan has any repayments
+        if self.amount_paid > 0:
+            return False
+
+        return True
 
     @staticmethod
     def compute_schedule(principal, monthly_rate, term_type, duration_value, start_date):
@@ -522,7 +551,7 @@ class CashTransaction(db.Model):
     __tablename__ = "cash_transactions"
 
     id = db.Column(db.Integer, primary_key=True)
-    tx_type = db.Column(db.String(30), nullable=False)  # capital_in | disbursement | repayment | expense | adjustment
+    tx_type = db.Column(db.String(30), nullable=False)  # capital_in | disbursement | repayment | expense | adjustment | reversal
     amount = db.Column(db.Float, nullable=False)         # signed: +in, -out
     description = db.Column(db.String(255), nullable=True)
 
@@ -569,6 +598,34 @@ class Expense(db.Model):
 
     def __repr__(self):
         return f"<Expense {self.expense_code}>"
+
+
+# ---------------------------------------------------------------------------
+# Audit log for reversals
+# ---------------------------------------------------------------------------
+class LoanReversalLog(db.Model):
+    __tablename__ = "loan_reversal_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey("loans.id"), nullable=False)
+    loan_code = db.Column(db.String(20), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
+    customer_name = db.Column(db.String(120), nullable=False)
+    principal_amount = db.Column(db.Float, nullable=False)
+
+    reversed_by_id = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=False)
+    reversed_by_name = db.Column(db.String(120), nullable=False)
+    reversed_at = db.Column(db.DateTime, nullable=False, default=db.func.now())
+
+    reason = db.Column(db.Text, nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)  # IPv6-compatible
+
+    loan = db.relationship("Loan")
+    customer = db.relationship("Customer")
+    reversed_by = db.relationship("Staff")
+
+    def __repr__(self):
+        return f"<LoanReversalLog {self.loan_code} by {self.reversed_by_name}>"
 
 
 def current_cash_in_hand():

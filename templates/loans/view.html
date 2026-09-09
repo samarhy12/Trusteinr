@@ -50,6 +50,7 @@
     </div>
     {% if loan.is_overdue %}<span class="badge badge-red">Overdue</span>
     {% elif loan.status == 'completed' %}<span class="badge badge-green">Completed</span>
+    {% elif loan.status == 'cancelled' %}<span class="badge badge-gray">Cancelled</span>
     {% else %}<span class="badge badge-navy">Active</span>{% endif %}
   </div>
   <div class="progress-track"><div class="progress-fill" style="width:{{ loan.progress_percent }}%"></div></div>
@@ -77,6 +78,28 @@
          alt="{{ loan.guarantor.full_name }}" class="w-14 h-14 rounded-full object-cover border border-line flex-shrink-0">
     {% endif %}
   </div>
+  {% if loan.status == 'cancelled' %}
+  <div class="mt-4 pt-4 border-t border-line bg-red-50 rounded-lg p-3">
+    <div class="text-red-800 font-semibold text-sm mb-1">This loan was cancelled</div>
+    <div class="text-red-700 text-xs">
+      Reversed by {{ loan.reversed_by.full_name if loan.reversed_by else 'Unknown' }}
+      {% if loan.reversed_at %}on {{ loan.reversed_at.strftime("%d %b %Y at %H:%M") }}{% endif %}
+      {% if loan.reversal_reason %}
+      <div class="mt-1">Reason: {{ loan.reversal_reason }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% elif current_user.can_reverse_loans and loan.can_be_reversed %}
+  <div class="mt-4 pt-4 border-t border-line">
+    <a href="{{ url_for('loans.reverse_loan', loan_id=loan.id) }}" class="btn btn-red btn-sm inline-flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+      </svg>
+      Reverse Loan
+    </a>
+    <span class="text-ink-400 text-xs ml-2">Available for active loans with no repayments</span>
+  </div>
+  {% endif %}
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
