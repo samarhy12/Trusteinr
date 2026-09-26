@@ -63,6 +63,12 @@ endblock %} {% block page_title %}Cash Ledger{% endblock %} {% block page_sub %}
         <div class="tx-body">
           <div class="tx-title">
             {{ tx.description or tx.tx_type.replace('_',' ')|capitalize }}
+            {% if tx.is_reversed %}
+            <span class="badge badge-gray ml-2">Reversed</span>
+            {% endif %}
+            {% if tx.is_reversal %}
+            <span class="badge badge-amber ml-2">Reversal</span>
+            {% endif %}
           </div>
           <div class="tx-sub">
             {{ tx.date.strftime("%d %b %Y") }} &middot; {{
@@ -73,6 +79,13 @@ endblock %} {% block page_title %}Cash Ledger{% endblock %} {% block page_sub %}
         <div class="tx-amount {{ 'in' if tx.amount > 0 else 'out' }}">
           {{ '+' if tx.amount > 0 else '' }}{{ "{:,.2f}".format(tx.amount) }}
         </div>
+        {% if current_user.is_admin and tx.can_be_reversed %}
+        <div class="tx-actions">
+          <a href="{{ url_for('staff.reverse_transaction', tx_id=tx.id) }}" class="btn btn-danger btn-sm">
+            Reverse
+          </a>
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -91,7 +104,12 @@ endblock %} {% block page_title %}Cash Ledger{% endblock %} {% block page_sub %}
 
     {% if current_user.is_admin %}
     <div class="card card-pad w-full">
-      <h3 class="mb-1">Adjust cash ledger</h3>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="mb-0">Adjust cash ledger</h3>
+        <a href="{{ url_for('staff.capital_history') }}" class="btn btn-outline btn-sm">
+          Capital History
+        </a>
+      </div>
       <p class="text-ink-400 text-xs mb-3.5">
         Admin only. Your password confirms this change.
       </p>

@@ -563,9 +563,32 @@ class CashTransaction(db.Model):
     date = db.Column(db.Date, nullable=False, default=date.today)
     created_at = db.Column(db.DateTime, default=db.func.now())
 
+    # Reversal tracking
+    reversed_by_id = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    reversed_at = db.Column(db.DateTime, nullable=True)
+    reversal_reason = db.Column(db.String(255), nullable=True)
+    original_tx_id = db.Column(db.Integer, db.ForeignKey("cash_transactions.id"), nullable=True)
+
     loan = db.relationship("Loan")
     customer = db.relationship("Customer")
-    staff = db.relationship("Staff")
+    staff = db.relationship("Staff", foreign_keys=[staff_id])
+    reversed_by = db.relationship("Staff", foreign_keys=[reversed_by_id])
+    original_transaction = db.relationship("CashTransaction", remote_side=[id], foreign_keys=[original_tx_id])
+
+    @property
+    def is_reversed(self):
+        return self.reversed_at is not None
+
+    @property
+    def is_reversal(self):
+        return self.tx_type == "reversal"
+
+    @property
+    def can_be_reversed(self):
+        if self.is_reversed or self.is_reversal:
+            return False
+        from datetime import datetime, timedelta
+        return datetime.now() - self.created_at < timedelta(hours=24)
 
     def __repr__(self):
         return f"<CashTx {self.tx_type} {self.amount}>"

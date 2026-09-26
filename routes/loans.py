@@ -617,6 +617,21 @@ def list_repayments():
     )
 
 
+@bp.route("/disbursements")
+@login_required
+def list_disbursements():
+    page = request.args.get("page", 1, type=int)
+    per_page = current_app.config["DEFAULT_PAGE_SIZE"]
+    loans_all = Loan.query.order_by(Loan.created_at.desc()).all()
+    pagination = paginate_items(loans_all, page, per_page)
+    return render_template(
+        "loans/disbursements.html",
+        loans=pagination.items,
+        pagination=pagination,
+        query_params={},
+    )
+
+
 @bp.route("/transactions/search")
 @login_required
 def search_transaction():

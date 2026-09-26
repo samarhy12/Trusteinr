@@ -1,0 +1,84 @@
+{% extends "base.html" %} {% block title %}Reverse Transaction — Trustline Finance{%
+endblock %} {% block page_title %}Reverse Transaction{% endblock %} {% block page_sub %}
+<div class="text-xs text-ink-400 mt-0.5">
+  Confirm reversal of transaction #{{ tx.id }}
+</div>
+{% endblock %} {% block content %}
+<div class="card card-pad w-full max-w-2xl mx-auto">
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex items-start gap-3">
+      <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+      </svg>
+      <div>
+        <h3 class="text-sm font-semibold text-red-800 mb-1">Warning: This action cannot be undone</h3>
+        <p class="text-sm text-red-700">Reversing this transaction will create a new reversal transaction and mark the original as reversed. This action requires your password and a documented reason for audit purposes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-6">
+    <h3 class="text-sm font-semibold text-ink-900 mb-3">Transaction Details</h3>
+    <div class="bg-cream-100 rounded-lg p-4">
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <span class="text-ink-400">Transaction ID:</span>
+          <span class="text-ink-900 font-medium ml-2">{{ tx.id }}</span>
+        </div>
+        <div>
+          <span class="text-ink-400">Type:</span>
+          <span class="text-ink-900 font-medium ml-2 capitalize">{{ tx.tx_type.replace('_',' ') }}</span>
+        </div>
+        <div>
+          <span class="text-ink-400">Amount:</span>
+          <span class="text-ink-900 font-medium ml-2 {{ 'text-green-700' if tx.amount > 0 else 'text-red-700' }}">
+            {{ '+' if tx.amount > 0 else '' }}{{ "{:,.2f}".format(tx.amount) }}
+          </span>
+        </div>
+        <div>
+          <span class="text-ink-400">Date:</span>
+          <span class="text-ink-900 font-medium ml-2">{{ tx.date.strftime("%d %b %Y") }}</span>
+        </div>
+        <div class="col-span-2">
+          <span class="text-ink-400">Description:</span>
+          <span class="text-ink-900 font-medium ml-2">{{ tx.description or 'No description' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('staff.reverse_transaction', tx_id=tx.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="field mb-4">
+      <label for="password">Your password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        autocomplete="current-password"
+        required
+      />
+      <span class="hint">Required to confirm this reversal.</span>
+    </div>
+    <div class="field mb-6">
+      <label for="reason">Reason for reversal</label>
+      <textarea
+        id="reason"
+        name="reason"
+        rows="3"
+        required
+        placeholder="Explain why this transaction needs to be reversed..."
+      ></textarea>
+      <span class="hint">This will be recorded in the audit trail.</span>
+    </div>
+    <div class="flex gap-3">
+      <a href="{{ url_for('staff.transactions') }}" class="btn btn-outline">
+        Cancel
+      </a>
+      <button type="submit" class="btn btn-danger">
+        Reverse Transaction
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

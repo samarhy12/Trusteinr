@@ -182,3 +182,68 @@ def add_capital():
     db.session.commit()
     flash("Cash ledger updated.", "success")
     return redirect(url_for("staff.transactions"))
+
+
+@bp.route("/transactions/capital-history")
+@login_required
+@admin_required
+def capital_history():
+    page = request.args.get("page", 1, type=int)
+    per_page = current_app.config["DEFAULT_PAGE_SIZE"]
+    capital_txs = CashTransaction.query.filter(
+        CashTransaction.tx_type.in_(["capital_in", "adjustment"])
+    ).order_by(CashTransaction.created_at.desc()).all()
+    pagination = paginate_items(capital_txs, page, per_page)
+    return render_template(
+        "staff/capital_history.html",
+        transactions=pagination.items,
+        pagination=pagination,
+        query_params={},
+    )
+
+
+@bp.route("/transactions/<int:tx_id>/reverse", methods=["GET", "POST"])
+@login_required
+@admin_required
+def reverse_transaction(tx_id):
+    tx = CashTransaction.query.get_or_404(tx_id)
+
+    if not tx.can_be_reversed:
+        flash("This transaction cannot be reversed.", "error")
+        return redirect(url_for("staff.transactions"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        reason = request.form.get("reason", "").strip()
+        if not password or not current_user.check_password(password):
+            flash("Incorrect password.", "error")
+            return redirect(url_for("staff.reverse_transaction", tx_id=tx_id))
+
+        if not reason:
+            flash("Please provide a reason.", "error")
+            return redirect(url_for("staff.reverse_transaction", tx_id=tx_id))
+
+        reversal_tx = CashTransaction(
+            tx_type="reversal",
+            amount=-tx.amount,
+            description=f"Reversal of {tx.tx_type}: {tx.description or 'No description'}",
+            loan_id=tx.loan_id,
+            customer_id=tx.customer_id,
+            expense_id=tx.expense_id,
+            staff_id=current_user.id,
+            original_tx_id=tx.id,
+            reversal_reason=reason,
+            date=date.today(),
+        )
+
+        tx.reversed_by_id = current_user.id
+        tx.reversed_at = datetime.now()
+        tx.reversal_reason = reason
+
+        db.session.add(reversal_tx)
+        db.session.commit()
+
+        flash(f"Transaction {tx.id} has been reversed successfully.", "success")
+        return redirect(url_for("staff.transactions"))
+
+    return render_template("staff/reverse_transaction.html", tx=tx)

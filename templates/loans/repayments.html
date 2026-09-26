@@ -18,6 +18,8 @@ block page_sub %}
           <th>Transaction ID</th>
           <th>Agent</th>
           <th>Amount</th>
+          <th>Recorded By</th>
+          <th>Note</th>
         </tr>
       </thead>
       <tbody>
@@ -41,6 +43,8 @@ block page_sub %}
           <td>{{ r.transaction_id }}</td>
           <td>{{ r.agent.full_name if r.agent else '—' }}</td>
           <td class="num">GHS {{ "{:,.2f}".format(r.amount) }}</td>
+          <td>{{ r.recorded_by.full_name if r.recorded_by else '—' }}</td>
+          <td>{{ r.note or '—' }}</td>
         </tr>
         {% endfor %}
       </tbody>

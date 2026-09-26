@@ -20,6 +20,12 @@
     <button onclick="window.print()" class="btn btn-outline btn-sm">
       Print
     </button>
+    <a href="{{ url_for('loans.list_disbursements') }}" class="btn btn-outline btn-sm">
+      Disbursement History
+    </a>
+    <a href="{{ url_for('loans.list_repayments') }}" class="btn btn-outline btn-sm">
+      Payment History
+    </a>
     <a
       href="{{ url_for('loans.new_loan') }}"
       class="btn btn-gold sm:flex-shrink-0 {{ 'hidden' if not current_user.can_disburse_loans }}"
