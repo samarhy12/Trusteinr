@@ -28,7 +28,7 @@ endblock %} {% block page_title %}Dashboard{% endblock %} {% block page_sub %}
   <div class="stat-card" x-data="{ showCash: false }">
     <div class="stat-label">Cash in hand</div>
     <div class="stat-value flex items-center gap-2">
-      <span :class="{ 'blur-sm': !showCash }">₵{{ "{:,.2f}".format(cash_in_hand) }}</span>
+      <span x-text="showCash ? '₵{{ '{:,.2f}'.format(cash_in_hand) }}' : '••••••••'" :style="!showCash ? 'filter: blur(4px);' : ''"></span>
       <button @click="showCash = !showCash" class="text-ink-400 hover:text-ink-600 transition-colors" :title="showCash ? 'Hide amount' : 'Show amount'">
         <svg x-show="!showCash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
