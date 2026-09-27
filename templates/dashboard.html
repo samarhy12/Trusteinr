@@ -25,11 +25,11 @@ endblock %} {% block page_title %}Dashboard{% endblock %} {% block page_sub %}
 {% endif %}
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  <div class="stat-card" x-data="{ showCash: false }">
+  <div class="stat-card" x-data="{ showCash: false, cashAmount: '₵{{ "{:,.2f}".format(cash_in_hand) }}' }" @cash-toggle.window="showCash = $event.detail">
     <div class="stat-label">Cash in hand</div>
     <div class="stat-value flex items-center gap-2">
-      <span x-text="showCash ? '₵{{ '{:,.2f}'.format(cash_in_hand) }}' : '••••••••'" :style="!showCash ? 'filter: blur(4px);' : ''"></span>
-      <button @click="showCash = !showCash" class="text-ink-400 hover:text-ink-600 transition-colors" :title="showCash ? 'Hide amount' : 'Show amount'">
+      <span x-text="showCash ? cashAmount : '••••••••'" :style="!showCash ? 'filter: blur(4px);' : ''"></span>
+      <button @click="showCash = !showCash; $dispatch('cash-toggle', showCash)" class="text-ink-400 hover:text-ink-600 transition-colors" :title="showCash ? 'Hide amount' : 'Show amount'">
         <svg x-show="!showCash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
           <circle cx="12" cy="12" r="3" />

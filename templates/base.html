@@ -393,6 +393,8 @@
             {% if global_cash_in_hand is not none %}
             <div
               class="flex items-center gap-2 sm:gap-2.5 bg-navy-800 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-[13px] flex-shrink-0"
+              x-data="{ showCash: false, cashAmount: '₵{{ "{:,.2f}".format(global_cash_in_hand) }}' }"
+              @cash-toggle.window="showCash = $event.detail"
             >
               <span
                 class="hidden sm:inline text-white/55 text-[11px] uppercase tracking-wide"
@@ -400,8 +402,9 @@
               >
               <span
                 class="font-mono font-semibold text-gold-400 whitespace-nowrap"
-                >₵{{ "{:,.2f}".format(global_cash_in_hand) }}</span
-              >
+                x-text="showCash ? cashAmount : '••••••••'"
+                :style="!showCash ? 'filter: blur(4px);' : ''"
+              ></span>
             </div>
             {% endif %}
             
